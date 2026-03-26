@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import type { FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
-import { countries } from '@/lib/countries';
+import { countries, countryGraph } from '@/lib/countries';
 
 interface MapProps {
   originId: string | null;
@@ -15,7 +15,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
 
   useEffect(() => {
-    fetch('/countries.geojson')
+    fetch('/countries.geojson?v=3')
       .then(res => res.json())
       .then(data => setGeoData(data))
       .catch(err => console.error("Error loading geojson", err));
@@ -26,49 +26,61 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
     return c ? c.name : iso;
   };
 
+  const currentFrontier = guessedIds.length > 0 ? guessedIds[guessedIds.length - 1] : originId;
+  const currentlyBordering = currentFrontier ? (countryGraph[currentFrontier] || []) : [];
+
   const styleFeature = (feature: any) => {
     const iso = feature.properties.iso;
 
-    // Default style (hidden or very faint)
-    let fillOpacity = 0;
-    let color = 'transparent';
+    // Default style
+    let fillOpacity = 1;
+    let color = '#e2e8f0'; // slate-200 (grey default country fill)
     let weight = 1;
+    let borderColor = '#94a3b8'; // slate-400 for visible borders
 
     if (iso === originId || iso === destId) {
       fillOpacity = 0.6;
       color = '#3b82f6'; // blue-500
+      borderColor = 'white';
+      weight = 2;
     } else if (guessedIds.includes(iso)) {
       fillOpacity = 0.6;
       color = '#22c55e'; // green-500
+      borderColor = 'white';
+      weight = 2;
     } else if (errorIds.includes(iso)) {
+      const isYellow = currentlyBordering.includes(iso);
       fillOpacity = 0.6;
-      color = '#ef4444'; // red-500
+      color = isYellow ? '#eab308' : '#ef4444'; // yellow-500 or red-500
+      borderColor = 'white';
+      weight = 2;
     }
 
     return {
       fillColor: color,
-      weight: color !== 'transparent' ? 2 : 0,
+      weight: weight,
       opacity: 1,
-      color: color !== 'transparent' ? 'white' : 'transparent',
-      fillOpacity
+      color: borderColor,
+      fillOpacity: fillOpacity
     };
   };
 
   const onEachFeature = (feature: any, layer: any) => {
     const iso = feature.properties.iso;
     if (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso)) {
-      const textColorClass = errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800');
-      layer.bindTooltip(getCountryName(iso), { permanent: true, direction: "center", className: `country-label font-bold text-sm bg-transparent border-none shadow-none ${textColorClass}` });
+      const isYellow = errorIds.includes(iso) && currentlyBordering.includes(iso);
+      const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
+      layer.bindTooltip(getCountryName(iso), { permanent: true, className: `country-label font-bold text-sm bg-transparent border-none shadow-none ${textColorClass}` });
     }
   };
 
   return (
-    <div className="w-full h-[400px] sm:h-[500px] rounded-lg overflow-hidden border border-green-300 shadow-md relative z-0">
+    <div className="absolute inset-0 w-full h-full z-0 bg-[#e2e8f0]">
       <MapContainer
         center={[20.0, 0.0]}
         zoom={2}
         scrollWheelZoom={true}
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: '100vh', width: '100vw' }}
         zoomControl={false}
       >
         <TileLayer
