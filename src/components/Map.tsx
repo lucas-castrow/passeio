@@ -24,6 +24,14 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
   const geoJsonRef = useRef<L.GeoJSON>(null);
   const mapRef = useRef<L.Map | null>(null);
 
+  function MapReadySetter({ mapRef }: { mapRef: React.RefObject<L.Map | null> }) {
+    const map = useMap();
+    useEffect(() => {
+      if (map) mapRef.current = map;
+    }, [map]);
+    return null;
+  }
+
   useEffect(() => {
     fetch('/countries.geojson?v=3')
       .then(res => res.json())
@@ -128,12 +136,12 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
-        whenCreated={(m) => (mapRef.current = m)}
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
+        <MapReadySetter mapRef={mapRef} />
         <MapCenterController geoJsonRef={geoJsonRef} focusIso={focusErrorIso || originId} setFocusErrorIso={setFocusErrorIso} />
         {geoData && (
           <GeoJSON
