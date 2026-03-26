@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import IntroModal from '@/components/IntroModal';
+import SuccessModal from '@/components/SuccessModal';
 import InputAutocomplete from '@/components/InputAutocomplete';
 import InteractiveMap from '@/components/MapWrapper';
 import { loadGameState, saveGameState, GameState } from '@/lib/storage';
@@ -21,6 +22,7 @@ export default function Home() {
   const [guessedIds, setGuessedIds] = useState<string[]>([]);
   const [errorIds, setErrorIds] = useState<string[]>([]);
   const [completed, setCompleted] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [currentDateString, setCurrentDateString] = useState('');
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function Home() {
         setMinSteps(data.minSteps || 0);
         setIdealPath(data.idealPath || []);
 
-        const savedState = loadGameState();
+        const savedState = loadGameState(data.date);
 
         if (!savedState || savedState.date !== data.date) {
           setShowIntro(true);
@@ -78,7 +80,7 @@ export default function Home() {
 
       const data = await res.json();
 
-      const currentState = loadGameState() || { date: new Date().toISOString().slice(0, 10), guesses: [], errors: [], completed: false };
+      const currentState = loadGameState(currentDateString) || { date: currentDateString, guesses: [], errors: [], completed: false };
 
       if (!res.ok || !data.valid) {
         setErrorText(data.message || data.error || 'Tentativa inválida.');
@@ -101,6 +103,7 @@ export default function Home() {
       const isComplete = data.reachedDestination;
       if (isComplete) {
         setCompleted(true);
+        setShowSuccessModal(true);
       }
 
       saveGameState({
@@ -123,7 +126,7 @@ export default function Home() {
     setGuessedIds(newGuessedIds);
     setCompleted(false);
 
-    const currentState = loadGameState() || { date: new Date().toISOString().slice(0, 10), guesses: [], errors: [], completed: false };
+    const currentState = loadGameState(currentDateString) || { date: currentDateString, guesses: [], errors: [], completed: false };
     saveGameState({
       ...currentState,
       guesses: newGuessedIds,
@@ -131,12 +134,7 @@ export default function Home() {
     });
   };
 
-  const calculateScoreMessage = () => {
-    const userSteps = guessedIds.length;
-    if (userSteps <= minSteps) return "Perfeito! Você fez a rota mais otimizada!";
-    if (userSteps <= minSteps + 2) return "Muito bem! Chegou perto da rota perfeita.";
-    return "Deu uma volta ao mundo, mas conseguiu chegar!";
-  };
+
 
   const getCountryName = (iso: string) => {
     const c = countries.find(x => x.id === iso);
@@ -154,9 +152,28 @@ export default function Home() {
     <main className="h-screen w-screen overflow-hidden bg-slate-50 flex flex-col font-sans relative">
       <IntroModal isOpen={showIntro} onClose={() => setShowIntro(false)} />
 
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        guessedIds={guessedIds}
+        idealPath={idealPath}
+        minSteps={minSteps}
+      />
+
       <div className="z-20 relative pointer-events-auto">
         <Header />
       </div>
+
+      {/* Floating indicator: Você está em... */}
+      {!completed && currentFrontier && (
+        <div className="absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none fade-in">
+          <div className="bg-blue-900/90 backdrop-blur-md text-white px-5 sm:px-8 py-2 sm:py-3 rounded-full shadow-lg border-2 border-blue-400 text-center flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+            <span className="text-sm sm:text-lg font-medium opacity-90 uppercase tracking-wide">Você está em:</span>
+            <span className="text-lg sm:text-2xl font-black tracking-tight">{getCountryName(currentFrontier)}</span>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 w-full mx-auto p-4 flex flex-col gap-6 relative pointer-events-none">
         {/* Map Area Background */}
@@ -282,18 +299,13 @@ export default function Home() {
               )}
 
               {completed && (
-                <div className="mt-5 p-4 bg-green-600 text-white rounded-lg font-bold border border-green-700 text-center shadow-lg">
-                  {calculateScoreMessage()}
-                  <p className="text-sm font-normal mt-1 opacity-90">Passos usados: {guessedIds.length} / Ideal: {minSteps}</p>
-
-                  {idealPath && idealPath.length > 0 && (
-                    <div className="mt-4 p-3 bg-green-800/40 rounded-md text-left">
-                      <p className="text-[11px] uppercase tracking-wider text-green-200 mb-2">A Rota Ideal era:</p>
-                      <p className="text-sm leading-relaxed text-green-50">
-                        {idealPath.map(iso => getCountryName(iso)).join(' → ')}
-                      </p>
-                    </div>
-                  )}
+                <div className="mt-5 p-4 bg-green-600 text-white rounded-xl font-bold border border-green-700 text-center shadow-lg relative overflow-hidden group hover:bg-green-700 transition cursor-pointer" onClick={() => setShowSuccessModal(true)}>
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-7l-2-2" /><path d="M22 8.5C22 5.5 19.5 3 16.5 3A5.5 5.5 0 0 0 12 5.5a5.5 5.5 0 0 0-4.5-2.5C4.5 3 2 5.5 2 8.5c0 3.78 3.4 6.86 8.55 11.53L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5Z" /></svg>
+                    <span className="text-lg">Viagem Concluída!</span>
+                  </div>
+                  <p className="text-sm font-normal mt-1 opacity-90">Clique para ver o resumo da sua rota.</p>
                 </div>
               )}
 

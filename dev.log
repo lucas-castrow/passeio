@@ -5,10 +5,5 @@
 ▲ Next.js 16.2.1 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.10.54:3000
-✓ Ready in 209ms
+✓ Ready in 210ms
 
-○ Compiling / ...
- GET /?date=2025-02-10 200 in 3.4s (next.js: 3.3s, application-code: 118ms)
- GET /api/daily-puzzle?date=2025-02-10 200 in 308ms (next.js: 296ms, application-code: 11ms)
- GET /?date=2025-02-05 200 in 47ms (next.js: 8ms, application-code: 39ms)
- GET /api/daily-puzzle?date=2025-02-05 200 in 5ms (next.js: 1473µs, application-code: 3ms)
