@@ -1,3 +1,4 @@
+import * as turf from '@turf/turf';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap, Polyline, Marker } from 'react-leaflet';
 import L from 'leaflet';
@@ -12,13 +13,16 @@ interface MapProps {
   destId: string | null;
   guessedIds: string[];
   errorIds?: string[];
+  focusErrorIso?: string | null;
+  setFocusErrorIso?: (iso: string | null) => void;
 }
 
-export default function InteractiveMap({ originId, destId, guessedIds, errorIds = [] }: MapProps) {
+export default function InteractiveMap({ originId, destId, guessedIds, errorIds = [], focusErrorIso = null, setFocusErrorIso }: MapProps) {
   const params = useParams();
   const lang = (params?.lang as string) || 'pt';
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   const geoJsonRef = useRef<L.GeoJSON>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     fetch('/countries.geojson?v=3')
@@ -29,9 +33,9 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
 
 
   const isCompleted = destId && guessedIds.includes(destId);
-  const currentFrontier = guessedIds.length > 0 
-      ? (isCompleted && guessedIds.length > 1 ? guessedIds[guessedIds.length - 2] : (isCompleted ? originId : guessedIds[guessedIds.length - 1]))
-      : originId;
+  const currentFrontier = guessedIds.length > 0
+    ? (isCompleted && guessedIds.length > 1 ? guessedIds[guessedIds.length - 2] : (isCompleted ? originId : guessedIds[guessedIds.length - 1]))
+    : originId;
 
   // Memoize borders so it doesn't recalculate on every render loosely
   const currentlyBordering = useMemo(() => {
@@ -111,22 +115,26 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
       });
     }, 50); // Small 50ms delay queue to ensure layer is completely mounted
     return () => clearTimeout(timer);
-  }, [geoData, originId, destId, guessedIds, errorIds, currentlyBordering]);
+  }, [geoData, originId, destId, guessedIds, errorIds, currentlyBordering, focusErrorIso]);
 
   return (
     <div className="absolute inset-0 w-full h-full z-0 bg-[#e2e8f0]">
       <MapContainer
         center={[20.0, 0.0]}
         zoom={2}
+        minZoom={2}
+        maxBounds={[[-90, -180], [90, 180]]}
+        maxBoundsViscosity={1.0}
         scrollWheelZoom={true}
-        style={{ height: '100vh', width: '100vw' }}
+        style={{ height: '100%', width: '100%' }}
         zoomControl={false}
+        whenCreated={(m) => (mapRef.current = m)}
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
-        <MapCenterController geoJsonRef={geoJsonRef} focusIso={originId} />
+        <MapCenterController geoJsonRef={geoJsonRef} focusIso={focusErrorIso || originId} setFocusErrorIso={setFocusErrorIso} />
         {geoData && (
           <GeoJSON
             ref={geoJsonRef}
@@ -155,7 +163,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
   );
 }
 
-export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: React.RefObject<any>, focusIso: string | null }) {
+export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: { geoJsonRef: React.RefObject<any>, focusIso: string | null, setFocusErrorIso?: (iso: string | null) => void }) {
   const map = useMap();
 
   useEffect(() => {
@@ -166,12 +174,21 @@ export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: Reac
       if (!geoJsonRef.current) return;
       const layers = geoJsonRef.current.getLayers();
       const targetLayer = layers.find((l: any) => l.feature?.properties?.iso === focusIso);
-      
-      if (targetLayer && targetLayer.getBounds) {
-        map.flyToBounds(targetLayer.getBounds(), { padding: [50, 50], duration: 1.5, maxZoom: 4 });
+
+      if (targetLayer && targetLayer.feature) {
+        // Use turf.bbox as requested
+        const bbox = turf.bbox(targetLayer.feature);
+        // bbox format is [minLng, minLat, maxLng, maxLat]
+        const bounds = L.latLngBounds(
+          [bbox[1], bbox[0]], // SouthWest: [minLat, minLng]
+          [bbox[3], bbox[2]]  // NorthEast: [maxLat, maxLng]
+        );
+        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5, maxZoom: 6 });
+        // After animation ends, clear focus to allow styles to reapply normally
+        if (setFocusErrorIso) setTimeout(() => setFocusErrorIso(null), 1600);
       }
     }, 200);
-  }, [map, geoJsonRef, focusIso]);
+  }, [map, geoJsonRef, focusIso, setFocusErrorIso]);
 
   return null;
 }
@@ -183,11 +200,11 @@ export function ArrowsController({ currentFrontier, currentlyBordering, geoData 
   if (!frontierFeature) return null;
 
   const borderingFeatures = geoData.features.filter((f: any) => currentlyBordering.includes(f.properties?.iso));
-  
+
   if (borderingFeatures.length === 0) return null;
 
   return (
-    <div style={{zIndex: 999}}>
+    <div style={{ zIndex: 999 }}>
       {borderingFeatures.map((bFeature: any) => (
         <BorderArrow
           key={bFeature.properties.iso}

@@ -32,6 +32,7 @@ export default function Home() {
   const [showSuccessModal, setShowSuccess] = useState(false);
   const [currentDateString, setCurrentDateString] = useState('');
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const [focusErrorIso, setFocusErrorIso] = useState<string | null>(null);
 
   useEffect(() => {
     async function initialize() {
@@ -190,15 +191,19 @@ export default function Home() {
 
       <div className="flex-1 w-full flex flex-col relative pointer-events-none overflow-hidden">
         {/* Map Area Background */}
-        <InteractiveMap
-          originId={origin?.id || null}
-          destId={destination?.id || null}
-          guessedIds={guessedIds}
-          errorIds={errorIds}
-        />
+        <div className="pointer-events-auto w-full h-full">
+          <InteractiveMap
+            originId={origin?.id || null}
+            destId={destination?.id || null}
+            guessedIds={guessedIds}
+            errorIds={errorIds}
+            focusErrorIso={focusErrorIso}
+            setFocusErrorIso={setFocusErrorIso}
+          />
+        </div>
 
         {/* Floating UI Container */}
-        <div className="flex flex-col relative z-20 pointer-events-none w-full lg:max-w-[360px] h-full justify-between lg:justify-start p-3 sm:p-4 lg:p-6 lg:pt-6 pb-2 sm:pb-4">
+        <div className="absolute top-4 left-4 z-30 pointer-events-auto w-auto lg:max-w-[360px] max-w-[95%] flex flex-col justify-between p-3 sm:p-4 lg:p-6 lg:pt-6">
 
           {/* Top Info Banner */}
           <div className="flex flex-col bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-md border border-slate-200 relative mb-4 pointer-events-auto">
@@ -251,91 +256,91 @@ export default function Home() {
               {isMobilePanelOpen ? "Ocultar painel 👇" : "Expandir histórico ↑"}
             </button>
             {/* Input & Error */}
-          <div className="flex flex-col gap-2 relative z-20 pointer-events-auto p-1 lg:p-0 mb-4 lg:mb-3">
-            <InputAutocomplete
-          countries={currentCountries}
-          placeholderText={t.typeCountry}
-          disabledText={t.alreadyArrived}
-              onGuess={handleGuess}
-              disabled={completed}
-              ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))] : [...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))]}
-            />
-            <div className="flex justify-center items-start w-full px-1">
-              <p className="text-red-600 bg-red-50/90 px-2 rounded-md backdrop-blur inline-block text-[13px] font-bold min-h-[20px] text-center leading-tight mx-auto">{errorText}</p>
+            <div className="flex flex-col gap-2 relative z-20 pointer-events-auto p-1 lg:p-0 mb-4 lg:mb-3">
+              <InputAutocomplete
+                countries={currentCountries}
+                placeholderText={t.typeCountry}
+                disabledText={t.alreadyArrived}
+                onGuess={handleGuess}
+                disabled={completed}
+                ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))] : [...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))]}
+              />
+              <div className="flex justify-center items-start w-full px-1">
+                <p className="text-red-600 bg-red-50/90 px-2 rounded-md backdrop-blur inline-block text-[13px] font-bold min-h-[20px] text-center leading-tight mx-auto">{errorText}</p>
+              </div>
             </div>
-          </div>
 
-          {/* Output Sequential list of guessed countries */}
-          {(guessedIds.length > 0 || errorIds.length > 0) && (
-            <div className={`w-full transition-all duration-300 ease-in-out ${isMobilePanelOpen ? "max-h-[40vh] opacity-100" : "max-h-0 opacity-0 lg:max-h-[45vh] lg:opacity-100"} overflow-hidden lg:overflow-visible`}>
-            <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-md border border-slate-200 w-full pointer-events-auto h-full max-h-[40vh] lg:max-h-[45vh] overflow-y-auto custom-scrollbar">
+            {/* Output Sequential list of guessed countries */}
+            {(guessedIds.length > 0 || errorIds.length > 0) && (
+              <div className={`w-full transition-all duration-300 ease-in-out ${isMobilePanelOpen ? "max-h-[40vh] opacity-100" : "max-h-0 opacity-0 lg:max-h-[45vh] lg:opacity-100"} overflow-hidden lg:overflow-visible`}>
+                <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-md border border-slate-200 w-full pointer-events-auto h-full max-h-[40vh] lg:max-h-[45vh] overflow-y-auto custom-scrollbar">
 
-              {guessedIds.length > 0 && (
-                <>
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Seu Caminho:</h3>
-                    {!completed && (
-                      <button
-                        onClick={() => undoGuess(guessedIds.length - 1)}
-                        className="text-[10px] bg-red-50 text-red-500 hover:bg-red-100 px-2 py-1 rounded-md font-bold transition-colors flex items-center gap-1"
-                        title="Desfazer último país"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg>
-                        Desfazer Último
-                      </button>
-                    )}
-                  </div>
+                  {guessedIds.length > 0 && (
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Seu Caminho:</h3>
+                        {!completed && (
+                          <button
+                            onClick={() => undoGuess(guessedIds.length - 1)}
+                            className="text-[10px] bg-red-50 text-red-500 hover:bg-red-100 px-2 py-1 rounded-md font-bold transition-colors flex items-center gap-1"
+                            title="Desfazer último país"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg>
+                            Desfazer Último
+                          </button>
+                        )}
+                      </div>
 
-                  {!completed && (
-                    <p className="text-[10px] text-slate-400 mb-3 italic">Dica: Clique em qualquer país abaixo para desfazer a rota a partir dele.</p>
+                      {!completed && (
+                        <p className="text-[10px] text-slate-400 mb-3 italic">Dica: Clique em qualquer país abaixo para desfazer a rota a partir dele.</p>
+                      )}
+
+                      <ul className="flex flex-wrap gap-2 justify-center">
+                        {guessedIds.map((iso, i) => (
+                          <li
+                            key={`guess-${i}`}
+                            onClick={() => !completed && undoGuess(i)}
+                            title={!completed ? "Clique para remover este país e os seguintes" : ""}
+                            className={`bg-green-100 text-green-800 text-sm py-1 px-3 rounded-full flex items-center gap-1 font-semibold group ${!completed ? 'cursor-pointer hover:bg-red-500 hover:text-white transition-colors' : ''}`}
+                          >
+                            <span className={`font-normal text-[10px] ${!completed ? 'text-green-500 group-hover:text-red-200' : 'text-green-500'}`}>{i + 1}.</span>
+                            <span className={!completed ? "group-hover:line-through" : ""}>{getCountryName(iso)}</span>
+                            {i < guessedIds.length - 1 && <span className={`text-green-300 ml-1 ${!completed ? 'group-hover:text-red-300' : ''}`}>→</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
 
-                  <ul className="flex flex-wrap gap-2 justify-center">
-                    {guessedIds.map((iso, i) => (
-                      <li
-                        key={`guess-${i}`}
-                        onClick={() => !completed && undoGuess(i)}
-                        title={!completed ? "Clique para remover este país e os seguintes" : ""}
-                        className={`bg-green-100 text-green-800 text-sm py-1 px-3 rounded-full flex items-center gap-1 font-semibold group ${!completed ? 'cursor-pointer hover:bg-red-500 hover:text-white transition-colors' : ''}`}
-                      >
-                        <span className={`font-normal text-[10px] ${!completed ? 'text-green-500 group-hover:text-red-200' : 'text-green-500'}`}>{i + 1}.</span>
-                        <span className={!completed ? "group-hover:line-through" : ""}>{getCountryName(iso)}</span>
-                        {i < guessedIds.length - 1 && <span className={`text-green-300 ml-1 ${!completed ? 'group-hover:text-red-300' : ''}`}>→</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
+                  {errorIds.length > 0 && (
+                    <div className={`pt-3 ${guessedIds.length > 0 ? 'mt-4 border-t border-slate-200' : ''}`}>
+                      <h3 className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2 text-center">{t.wrongAttempts}</h3>
+                      <ul className="flex flex-wrap gap-1.5 justify-center">
+                        {errorIds.map((iso, i) => {
+                          const isYellow = currentlyBordering.includes(iso);
+                          return (
+                            <li key={`err-${i}`} onClick={() => setFocusErrorIso(iso)} className={`cursor-pointer hover:opacity-75 hover:underline transition-all border text-[11px] py-0.5 px-2 rounded-md ${isYellow ? 'bg-yellow-100 border-yellow-400 text-yellow-800' : 'bg-red-100 border-red-300 text-red-700'}`}>
+                              {getCountryName(iso)}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
 
-              {errorIds.length > 0 && (
-                <div className={`pt-3 ${guessedIds.length > 0 ? 'mt-4 border-t border-slate-200' : ''}`}>
-                  <h3 className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2 text-center">{t.wrongAttempts}</h3>
-                  <ul className="flex flex-wrap gap-1.5 justify-center">
-                    {errorIds.map((iso, i) => {
-                      const isYellow = currentlyBordering.includes(iso);
-                      return (
-                        <li key={`err-${i}`} className={`border text-[11px] py-0.5 px-2 rounded-md ${isYellow ? 'bg-yellow-50 border-yellow-300 text-yellow-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                          {getCountryName(iso)}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  {completed && (
+                    <div className="mt-5 p-4 bg-green-600 text-white rounded-xl font-bold border border-green-700 text-center shadow-lg relative overflow-hidden group hover:bg-green-700 transition cursor-pointer" onClick={() => setShowSuccess(true)}>
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-7l-2-2" /><path d="M22 8.5C22 5.5 19.5 3 16.5 3A5.5 5.5 0 0 0 12 5.5a5.5 5.5 0 0 0-4.5-2.5C4.5 3 2 5.5 2 8.5c0 3.78 3.4 6.86 8.55 11.53L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5Z" /></svg>
+                        <span className="text-lg">Viagem Concluída!</span>
+                      </div>
+                      <p className="text-sm font-normal mt-1 opacity-90">Clique para ver o resumo da sua rota.</p>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {completed && (
-                <div className="mt-5 p-4 bg-green-600 text-white rounded-xl font-bold border border-green-700 text-center shadow-lg relative overflow-hidden group hover:bg-green-700 transition cursor-pointer" onClick={() => setShowSuccess(true)}>
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-7l-2-2" /><path d="M22 8.5C22 5.5 19.5 3 16.5 3A5.5 5.5 0 0 0 12 5.5a5.5 5.5 0 0 0-4.5-2.5C4.5 3 2 5.5 2 8.5c0 3.78 3.4 6.86 8.55 11.53L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5Z" /></svg>
-                    <span className="text-lg">Viagem Concluída!</span>
-                  </div>
-                  <p className="text-sm font-normal mt-1 opacity-90">Clique para ver o resumo da sua rota.</p>
-                </div>
-              )}
-            </div>
-            </div>
-          )}
+              </div>
+            )}
           </div>
         </div>
       </div>

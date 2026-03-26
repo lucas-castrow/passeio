@@ -4,27 +4,73 @@ import { countryGraph, countries } from './countries';
 export function findShortestPath(originId: string, destId: string): string[] | null {
     if (originId === destId) return [originId];
 
-    const queue: { id: string; path: string[] }[] = [{ id: originId, path: [originId] }];
-    const visited = new Set<string>();
-    visited.add(originId);
+    let queueOrigin = [originId];
+    let queueDest = [destId];
 
-    while (queue.length > 0) {
-        const { id, path } = queue.shift()!;
+    const visitedOrigin = new Map<string, string | null>();
+    const visitedDest = new Map<string, string | null>();
+    
+    visitedOrigin.set(originId, null);
+    visitedDest.set(destId, null);
 
-        if (id === destId) {
-            return path;
-        }
-
-        const neighbors = countryGraph[id] || [];
-        for (const neighbor of neighbors) {
-            if (!visited.has(neighbor)) {
-                visited.add(neighbor);
-                queue.push({ id: neighbor, path: [...path, neighbor] });
+    while (queueOrigin.length > 0 && queueDest.length > 0) {
+        // Expand Origin
+        const nextQueueOrigin: string[] = [];
+        for (const currentO of queueOrigin) {
+            const neighborsO = countryGraph[currentO] || [];
+            
+            for (const neighbor of neighborsO) {
+                if (!visitedOrigin.has(neighbor)) {
+                    visitedOrigin.set(neighbor, currentO);
+                    nextQueueOrigin.push(neighbor);
+                }
+                
+                if (visitedDest.has(neighbor)) {
+                    return buildBidirectionalPath(visitedOrigin, visitedDest, neighbor);
+                }
             }
         }
+        queueOrigin = nextQueueOrigin;
+
+        // Expand Dest
+        const nextQueueDest: string[] = [];
+        for (const currentD of queueDest) {
+            const neighborsD = countryGraph[currentD] || [];
+            
+            for (const neighbor of neighborsD) {
+                if (!visitedDest.has(neighbor)) {
+                    visitedDest.set(neighbor, currentD);
+                    nextQueueDest.push(neighbor);
+                }
+                
+                if (visitedOrigin.has(neighbor)) {
+                    return buildBidirectionalPath(visitedOrigin, visitedDest, neighbor);
+                }
+            }
+        }
+        queueDest = nextQueueDest;
     }
 
-    return null; // Path not found
+    return null;
+}
+
+function buildBidirectionalPath(visitedOrigin: Map<string, string | null>, visitedDest: Map<string, string | null>, meetingNode: string): string[] {
+    const pathOrigin: string[] = [];
+    let currOrigin: string | null = meetingNode;
+    while (currOrigin !== null) {
+        pathOrigin.push(currOrigin);
+        currOrigin = visitedOrigin.get(currOrigin) || null;
+    }
+    pathOrigin.reverse();
+    
+    const pathDest: string[] = [];
+    let currDest: string | null = visitedDest.get(meetingNode) || null;
+    while (currDest !== null) {
+        pathDest.push(currDest);
+        currDest = visitedDest.get(currDest) || null;
+    }
+    
+    return [...pathOrigin, ...pathDest];
 }
 
 // Basic BFS implementation to find the shortest path length
