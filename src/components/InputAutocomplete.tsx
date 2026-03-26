@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { countries, countryAliases, normalizeStr, Country } from '@/lib/countries';
+import { countryAliases, normalizeStr, Country } from '@/lib/countries';
 
 interface InputAutocompleteProps {
+  countries: Country[];
+  placeholderText?: string;
+  disabledText?: string;
   onGuess: (isoCode: string) => void;
   disabled: boolean;
   ignoredIsos?: string[];
 }
 
-export default function InputAutocomplete({ onGuess, disabled, ignoredIsos = [] }: InputAutocompleteProps) {
+export default function InputAutocomplete({ onGuess, disabled, ignoredIsos = [], placeholderText, disabledText, countries }: InputAutocompleteProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<unknown[]>([]);
 
@@ -84,11 +87,11 @@ export default function InputAutocomplete({ onGuess, disabled, ignoredIsos = [] 
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        placeholder={disabled ? "Você já chegou!" : "Digite o nome do país..."}
+        placeholder={disabled ? (disabledText || "Você já chegou!") : (placeholderText || "Digite o nome do país...")}
         className="w-full px-4 py-3 border-2 border-green-400 rounded-full focus:outline-none focus:ring-2 focus:ring-green-600 bg-white text-green-900 placeholder:text-green-300 disabled:opacity-50"
       />
       {suggestions.length > 0 && (
-        <ul className="absolute top-14 left-0 right-0 bg-white border border-green-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto z-20">
+        <ul className="absolute bottom-14 lg:top-14 lg:bottom-auto left-0 right-0 bg-white border border-green-200 rounded-lg shadow-lg mb-1 lg:mb-0 lg:mt-1 max-h-48 overflow-y-auto z-20">
           {suggestions.map((c: any) => (
             <li
               key={c.iso + c.label}

@@ -1,20 +1,27 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { dict } from '@/lib/dict';
 import Header from '@/components/Header';
 import IntroModal from '@/components/IntroModal';
 import SuccessModal from '@/components/SuccessModal';
 import InputAutocomplete from '@/components/InputAutocomplete';
 import InteractiveMap from '@/components/MapWrapper';
 import { loadGameState, saveGameState, GameState } from '@/lib/storage';
-import { countries, countryGraph } from '@/lib/countries';
+import { countries, countryGraph, getCountriesByLang, getCountryName } from '@/lib/countries';
 
 export default function Home() {
+  const params = useParams();
+  const lang = (params?.lang as 'pt' | 'en') || 'pt';
+  const t = dict[lang] || dict.pt;
+
   const [showIntro, setShowIntro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState('');
 
   const [origin, setOrigin] = useState<{ id: string, name: string } | null>(null);
+  const currentCountries = getCountriesByLang(lang);
   const [destination, setDestination] = useState<{ id: string, name: string } | null>(null);
   const [minSteps, setMinSteps] = useState(0);
   const [idealPath, setIdealPath] = useState<string[]>([]);
@@ -22,8 +29,9 @@ export default function Home() {
   const [guessedIds, setGuessedIds] = useState<string[]>([]);
   const [errorIds, setErrorIds] = useState<string[]>([]);
   const [completed, setCompleted] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessModal, setShowSuccess] = useState(false);
   const [currentDateString, setCurrentDateString] = useState('');
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
   useEffect(() => {
     async function initialize() {
@@ -83,7 +91,7 @@ export default function Home() {
       const currentState = loadGameState(currentDateString) || { date: currentDateString, guesses: [], errors: [], completed: false };
 
       if (!res.ok || !data.valid) {
-        setErrorText(data.message || data.error || 'Tentativa inválida.');
+        setErrorText(data.message || data.error || t.invalidAttempt);
 
         // Track the error if it hasn't been tracked yet
         const newErrorIds = [...errorIds];
@@ -109,7 +117,7 @@ export default function Home() {
       const isComplete = data.reachedDestination;
       if (isComplete) {
         setCompleted(true);
-        setShowSuccessModal(true);
+        setShowSuccess(true);
       }
 
       saveGameState({
@@ -121,7 +129,7 @@ export default function Home() {
 
     } catch (err) {
       console.error('Erro na validação', err);
-      setErrorText('Erro ao validar tentativa.');
+      setErrorText(t.errorValidating);
     }
   };
 
@@ -156,33 +164,31 @@ export default function Home() {
   }
 
   return (
-    <main className="h-screen w-screen overflow-hidden bg-slate-50 flex flex-col font-sans relative">
-      <IntroModal isOpen={showIntro} onClose={() => setShowIntro(false)} />
+    <main className="h-[100dvh] w-[100dvw] overflow-hidden bg-slate-50 flex flex-col font-sans relative">
+      <IntroModal isOpen={showIntro} onClose={() => setShowIntro(false)} origin={origin?.name || ''} destination={destination?.name || ''} t={t} />
 
-      <SuccessModal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
+      <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccess(false)} t={t}
         guessedIds={guessedIds}
         idealPath={idealPath}
         minSteps={minSteps}
       />
 
       <div className="z-20 relative pointer-events-auto">
-        <Header />
+        <Header dailyChallenge={t.dailyChallenge} lang={lang} />
       </div>
 
       {/* Floating indicator: Você está em... */}
       {!completed && currentFrontier && (
-        <div className="absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none fade-in">
+        <div className="absolute top-48 sm:top-24 lg:top-8 left-1/2 -translate-x-1/2 z-30 pointer-events-none fade-in">
           <div className="bg-blue-900/90 backdrop-blur-md text-white px-5 sm:px-8 py-2 sm:py-3 rounded-full shadow-lg border-2 border-blue-400 text-center flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-            <span className="text-sm sm:text-lg font-medium opacity-90 uppercase tracking-wide">Você está em:</span>
+            <span className="text-sm sm:text-lg font-medium opacity-90 uppercase tracking-wide">{t.youAreIn}</span>
             <span className="text-lg sm:text-2xl font-black tracking-tight">{getCountryName(currentFrontier)}</span>
           </div>
         </div>
       )}
 
-      <div className="flex-1 w-full mx-auto p-4 flex flex-col gap-6 relative pointer-events-none">
+      <div className="flex-1 w-full flex flex-col relative pointer-events-none overflow-hidden">
         {/* Map Area Background */}
         <InteractiveMap
           originId={origin?.id || null}
@@ -192,13 +198,13 @@ export default function Home() {
         />
 
         {/* Floating UI Container */}
-        <div className="flex flex-col relative z-20 pointer-events-none mt-2 lg:mt-6 w-full lg:max-w-[340px]">
+        <div className="flex flex-col relative z-20 pointer-events-none w-full lg:max-w-[360px] h-full justify-between lg:justify-start p-3 sm:p-4 lg:p-6 lg:pt-6 pb-2 sm:pb-4">
 
           {/* Top Info Banner */}
           <div className="flex flex-col bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-md border border-slate-200 relative mb-4 pointer-events-auto">
             {errorIds.length > 0 && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-200 z-10 shadow-sm">
-                Erros: {errorIds.length}
+                {t.errors} {errorIds.length}
               </div>
             )}
 
@@ -213,7 +219,7 @@ export default function Home() {
                 value={currentDateString}
                 onChange={(e) => {
                   if (e.target.value) {
-                    window.location.href = `/?date=${e.target.value}`;
+                    window.location.href = `/${lang}?date=${e.target.value}`;
                   }
                 }}
                 className="text-xs px-2 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all cursor-pointer font-medium"
@@ -228,7 +234,7 @@ export default function Home() {
               <div className="w-1/3 px-2 flex flex-col items-center justify-center">
                 <div className="h-[2px] bg-slate-200 w-full relative mb-1.5">
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] text-slate-500 font-bold whitespace-nowrap border border-slate-100">
-                    {completed ? "Chegou!" : "PARA"}
+                    {completed ? t.arrived : "PARA"}
                   </div>
                 </div>
                 {minSteps > 0 && <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded">Par ideal: {minSteps}</span>}
@@ -240,21 +246,29 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Input & Error */}
-          <div className="flex flex-col gap-2 relative z-20 pointer-events-auto bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-md border border-slate-200 mb-4">
+          <div className="flex flex-col w-full pointer-events-auto items-end lg:items-stretch justify-end lg:justify-start mt-auto lg:mt-0">
+            <button onClick={() => setIsMobilePanelOpen(!isMobilePanelOpen)} className="lg:hidden mb-2 bg-blue-600/90 backdrop-blur text-white px-4 py-1.5 rounded-full shadow-md font-bold text-xs pointer-events-auto self-center">
+              {isMobilePanelOpen ? "Ocultar painel 👇" : "Expandir histórico ↑"}
+            </button>
+            {/* Input & Error */}
+          <div className="flex flex-col gap-2 relative z-20 pointer-events-auto p-1 lg:p-0 mb-4 lg:mb-3">
             <InputAutocomplete
+          countries={currentCountries}
+          placeholderText={t.typeCountry}
+          disabledText={t.alreadyArrived}
               onGuess={handleGuess}
               disabled={completed}
               ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))] : [...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))]}
             />
             <div className="flex justify-center items-start w-full px-1">
-              <p className="text-red-500 text-[13px] font-medium min-h-[20px] text-center leading-tight">{errorText}</p>
+              <p className="text-red-600 bg-red-50/90 px-2 rounded-md backdrop-blur inline-block text-[13px] font-bold min-h-[20px] text-center leading-tight mx-auto">{errorText}</p>
             </div>
           </div>
 
           {/* Output Sequential list of guessed countries */}
           {(guessedIds.length > 0 || errorIds.length > 0) && (
-            <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-md border border-slate-200 w-full pointer-events-auto max-h-[45vh] overflow-y-auto custom-scrollbar">
+            <div className={`w-full transition-all duration-300 ease-in-out ${isMobilePanelOpen ? "max-h-[40vh] opacity-100" : "max-h-0 opacity-0 lg:max-h-[45vh] lg:opacity-100"} overflow-hidden lg:overflow-visible`}>
+            <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-md border border-slate-200 w-full pointer-events-auto h-full max-h-[40vh] lg:max-h-[45vh] overflow-y-auto custom-scrollbar">
 
               {guessedIds.length > 0 && (
                 <>
@@ -295,7 +309,7 @@ export default function Home() {
 
               {errorIds.length > 0 && (
                 <div className={`pt-3 ${guessedIds.length > 0 ? 'mt-4 border-t border-slate-200' : ''}`}>
-                  <h3 className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2 text-center">Tentativas Erradas:</h3>
+                  <h3 className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2 text-center">{t.wrongAttempts}</h3>
                   <ul className="flex flex-wrap gap-1.5 justify-center">
                     {errorIds.map((iso, i) => {
                       const isYellow = currentlyBordering.includes(iso);
@@ -310,7 +324,7 @@ export default function Home() {
               )}
 
               {completed && (
-                <div className="mt-5 p-4 bg-green-600 text-white rounded-xl font-bold border border-green-700 text-center shadow-lg relative overflow-hidden group hover:bg-green-700 transition cursor-pointer" onClick={() => setShowSuccessModal(true)}>
+                <div className="mt-5 p-4 bg-green-600 text-white rounded-xl font-bold border border-green-700 text-center shadow-lg relative overflow-hidden group hover:bg-green-700 transition cursor-pointer" onClick={() => setShowSuccess(true)}>
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-7l-2-2" /><path d="M22 8.5C22 5.5 19.5 3 16.5 3A5.5 5.5 0 0 0 12 5.5a5.5 5.5 0 0 0-4.5-2.5C4.5 3 2 5.5 2 8.5c0 3.78 3.4 6.86 8.55 11.53L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5Z" /></svg>
@@ -319,9 +333,10 @@ export default function Home() {
                   <p className="text-sm font-normal mt-1 opacity-90">Clique para ver o resumo da sua rota.</p>
                 </div>
               )}
-
+            </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </main>

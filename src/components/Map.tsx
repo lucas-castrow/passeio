@@ -3,7 +3,9 @@ import { MapContainer, TileLayer, GeoJSON, useMap, Polyline, Marker } from 'reac
 import L from 'leaflet';
 import type { FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
-import { countries, countryGraph } from '@/lib/countries';
+import { countries, countryGraph, getCountryName } from '@/lib/countries';
+import { useParams } from 'next/navigation';
+import BorderArrow from './BorderArrow';
 
 interface MapProps {
   originId: string | null;
@@ -13,6 +15,8 @@ interface MapProps {
 }
 
 export default function InteractiveMap({ originId, destId, guessedIds, errorIds = [] }: MapProps) {
+  const params = useParams();
+  const lang = (params?.lang as string) || 'pt';
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   const geoJsonRef = useRef<L.GeoJSON>(null);
 
@@ -23,10 +27,6 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
       .catch(err => console.error("Error loading geojson", err));
   }, []);
 
-  const getCountryName = (iso: string) => {
-    const c = countries.find(x => x.id === iso);
-    return c ? c.name : iso;
-  };
 
   const isCompleted = destId && guessedIds.includes(destId);
   const currentFrontier = guessedIds.length > 0 
@@ -91,15 +91,15 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         if (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso)) {
           const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
 
-          let labelText = getCountryName(iso);
+          let labelText = getCountryName(iso, lang);
           if (guessedIds.includes(iso)) {
             const index = guessedIds.indexOf(iso) + 1;
-            let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">Destino</div>` : '';
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso)}</span></div>`;
+            let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso, lang)}</span></div>`;
           } else if (iso === originId) {
-            labelText = `<div class="text-xs uppercase tracking-wider text-blue-600 bg-white/70 px-1 rounded mb-0.5">Origem</div>${getCountryName(iso)}`;
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
           } else if (iso === destId) {
-            labelText = `<div class="text-xs uppercase tracking-wider text-blue-600 bg-white/70 px-1 rounded mb-0.5">Destino</div>${getCountryName(iso)}`;
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
           }
 
           layer.bindTooltip(labelText, {
@@ -176,106 +176,25 @@ export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: Reac
   return null;
 }
 
-export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonRef, geoData }: any) {
-    const [arrows, setArrows] = useState<any[]>([]);
+export function ArrowsController({ currentFrontier, currentlyBordering, geoData }: any) {
+  if (!geoData || !currentFrontier || !currentlyBordering || currentlyBordering.length === 0) return null;
 
-    useEffect(() => {
-        if (!geoJsonRef.current || !currentFrontier || currentlyBordering.length === 0) {
-            setArrows([]);
-            return;
-        }
+  const frontierFeature = geoData.features.find((f: any) => f.properties?.iso === currentFrontier);
+  if (!frontierFeature) return null;
 
-        let isMounted = true;
-        let attempts = 0;
-        
-        const calculateArrows = () => {
-            if (!isMounted) return;
-            
-            let fCenter: any = null;
-            let bCenters: any[] = [];
-            
-            if (!geoJsonRef.current) return;
-            
-            geoJsonRef.current.eachLayer((layer: any) => {
-                const iso = layer.feature?.properties?.iso;
-                if (!iso) return;
-                
-                if (iso === currentFrontier) {
-                    if (layer.getBounds) fCenter = layer.getBounds().getCenter();
-                } else if (currentlyBordering.includes(iso)) {
-                    if (layer.getBounds) bCenters.push({ iso, center: layer.getBounds().getCenter() });
-                }
-            });
+  const borderingFeatures = geoData.features.filter((f: any) => currentlyBordering.includes(f.properties?.iso));
+  
+  if (borderingFeatures.length === 0) return null;
 
-            if (fCenter && bCenters.length > 0) {
-                const newArrows = bCenters.map(bc => {
-                    let lng1 = fCenter.lng;
-                    let lng2 = bc.center.lng;
-                    
-                    // Adjust for date line crossing
-                    if (Math.abs(lng1 - lng2) > 180) {
-                        if (lng1 > lng2) lng2 += 360;
-                        else lng1 += 360;
-                    }
-                    
-                    const lat1 = fCenter.lat;
-                    const lat2 = bc.center.lat;
-
-                    const midLat = (lat1 + lat2) / 2;
-                    let midLng = (lng1 + lng2) / 2;
-                    if (midLng > 180) midLng -= 360;
-                    
-                    const angle = Math.atan2(lng2 - lng1, lat2 - lat1) * (180 / Math.PI);
-                    
-                    return {
-                        id: bc.iso,
-                        // positions must pass continuous line for rendering without streak across world
-                        positions: [[lat1, lng1], [lat2, lng2]],
-                        midLat,
-                        midLng,
-                        angle
-                    };
-                });
-                setArrows(newArrows);
-            } else if (attempts < 15) {
-                attempts++;
-                setTimeout(calculateArrows, 300);
-            } else {
-                setArrows([]);
-            }
-        };
-
-        const timer = setTimeout(calculateArrows, 150);
-
-        return () => {
-            isMounted = false;
-            clearTimeout(timer);
-        };
-    }, [currentFrontier, currentlyBordering, geoJsonRef, geoData]);
-
-    if (arrows.length === 0) return null;
-
-    return (
-        <div style={{zIndex: 999}}>
-            {arrows.map((arr) => {
-                return (
-                <div key={arr.id}>
-                    <Polyline 
-                        positions={arr.positions as [number, number][]} 
-                        pathOptions={{ color: '#fbbf24', weight: 4, dashArray: '6,6', opacity: 0.9 }} 
-                    />
-                    <Marker 
-                        position={[arr.midLat, arr.midLng]} 
-                        icon={L.divIcon({
-                            html: `<div style="transform: rotate(\${arr.angle}deg); display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #fbbf24; border-radius: 50%; border: 1.5px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.5);"><div style="width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid white; margin-bottom: 1px;"></div></div>`,
-                            className: '',
-                            iconSize: [14, 14],
-                            iconAnchor: [7, 7]
-                        })}
-                    />
-                </div>
-                );
-            })}
-        </div>
-    );
+  return (
+    <div style={{zIndex: 999}}>
+      {borderingFeatures.map((bFeature: any) => (
+        <BorderArrow
+          key={bFeature.properties.iso}
+          countryA={frontierFeature}
+          countryB={bFeature}
+        />
+      ))}
+    </div>
+  );
 }

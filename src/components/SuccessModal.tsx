@@ -1,6 +1,7 @@
 import { countries } from '@/lib/countries';
 
 interface SuccessModalProps {
+  t?: any;
   isOpen: boolean;
   onClose: () => void;
   guessedIds: string[];

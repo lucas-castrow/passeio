@@ -5,10 +5,110 @@
 ▲ Next.js 16.2.1 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.10.54:3000
-✓ Ready in 209ms
+✓ Ready in 247ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 
- GET /?date=2026-03-10 200 in 2.8s (next.js: 2.7s, application-code: 128ms)
- GET /api/daily-puzzle?date=2026-03-10 200 in 262ms (next.js: 248ms, application-code: 14ms)
- GET /?date=2026-03-10 200 in 46ms (next.js: 6ms, application-code: 41ms)
- GET /api/daily-puzzle?date=2026-03-10 200 in 9ms (next.js: 3ms, application-code: 6ms)
- POST /api/validate-guess 200 in 137ms (next.js: 133ms, application-code: 4ms)
+ GET /pt 200 in 3.3s (next.js: 3.2s, application-code: 157ms)
+ GET /api/daily-puzzle 200 in 382ms (next.js: 372ms, application-code: 11ms)
+✓ Compiled in 113ms
+ GET /api/daily-puzzle 200 in 10ms (next.js: 3ms, application-code: 6ms)
+ GET /pt 200 in 115ms (next.js: 58ms, application-code: 57ms)
+✓ Compiled in 104ms
+[browser] ./src/app/[lang]/page.tsx:338:12
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  336 |
+  337 |             </div>
+> 338 |           )}
+      |            ^
+  339 |         </div>
+  340 |       </div>
+  341 |     </main>
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/[lang]/page.tsx [Client Component Browser]
+    ./src/app/[lang]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/[lang]/page.tsx [Client Component SSR]
+    ./src/app/[lang]/page.tsx [Server Component] 
+[browser] ./src/app/[lang]/page.tsx:340:8
+Unterminated regexp literal
+  338 |           )}
+  339 |         </div>
+> 340 |       </div>
+      |        ^^^^^
+  341 |     </main>
+  342 |   );
+  343 | }
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/[lang]/page.tsx [Client Component Browser]
+    ./src/app/[lang]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/[lang]/page.tsx [Client Component SSR]
+    ./src/app/[lang]/page.tsx [Server Component] 
+[browser] ./src/app/[lang]/page.tsx:338:12
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  336 |
+  337 |             </div>
+> 338 |           )}
+      |            ^
+  339 |         </div>
+  340 |       </div>
+  341 |     </main>
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/[lang]/page.tsx [Client Component Browser]
+    ./src/app/[lang]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/[lang]/page.tsx [Client Component SSR]
+    ./src/app/[lang]/page.tsx [Server Component] 
+[browser] ./src/app/[lang]/page.tsx:340:8
+Unterminated regexp literal
+  338 |           )}
+  339 |         </div>
+> 340 |       </div>
+      |        ^^^^^
+  341 |     </main>
+  342 |   );
+  343 | }
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/[lang]/page.tsx [Client Component Browser]
+    ./src/app/[lang]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/[lang]/page.tsx [Client Component SSR]
+    ./src/app/[lang]/page.tsx [Server Component] 
+✓ Compiled in 54ms
+ GET /pt 200 in 96ms (next.js: 38ms, application-code: 58ms)
+ GET /api/daily-puzzle 200 in 9ms (next.js: 4ms, application-code: 5ms)
+ POST /api/validate-guess 200 in 196ms (next.js: 189ms, application-code: 7ms)
+ POST /api/validate-guess 200 in 4ms (next.js: 1727µs, application-code: 3ms)
+ GET /pt 200 in 106ms (next.js: 52ms, application-code: 54ms)
+ GET /api/daily-puzzle 200 in 9ms (next.js: 3ms, application-code: 6ms)
+✓ Compiled in 68ms
+✓ Compiled in 63ms
+✓ Compiled in 108ms
+✓ Compiled in 79ms
+✓ Compiled in 44ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+✓ Compiled in 40ms
+ GET /api/daily-puzzle 200 in 95ms (next.js: 85ms, application-code: 10ms)
+ GET /pt 200 in 131ms (next.js: 52ms, application-code: 78ms)
+ GET /api/daily-puzzle 200 in 8ms (next.js: 4ms, application-code: 4ms)
+[?25h
