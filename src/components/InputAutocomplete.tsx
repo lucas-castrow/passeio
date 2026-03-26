@@ -6,53 +6,58 @@ import { countries, countryAliases, normalizeStr, Country } from '@/lib/countrie
 interface InputAutocompleteProps {
   onGuess: (isoCode: string) => void;
   disabled: boolean;
+  ignoredIsos?: string[];
 }
 
-export default function InputAutocomplete({ onGuess, disabled }: InputAutocompleteProps) {
+export default function InputAutocomplete({ onGuess, disabled, ignoredIsos = [] }: InputAutocompleteProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<unknown[]>([]);
 
   // Pre-calculate normalized arrays
   const searchIndex = useMemo(() => {
-    const list = countries.map(c => ({
-      ...c,
-      normalizedName: normalizeStr(c.name)
-    }));
+    const list = countries
+      .filter(c => !ignoredIsos.includes(c.id))
+      .map(c => ({
+        ...c,
+        normalizedName: normalizeStr(c.name)
+      }));
 
-    const aliasList = Object.entries(countryAliases).map(([alias, iso]) => ({
-      alias,
-      normalizedAlias: normalizeStr(alias),
-      iso
-    }));
+    const aliasList = Object.entries(countryAliases)
+      .filter(([_, iso]) => !ignoredIsos.includes(iso))
+      .map(([alias, iso]) => ({
+        alias,
+        normalizedAlias: normalizeStr(alias),
+        iso
+      }));
 
     return { list, aliasList };
-  }, []);
+  }, [ignoredIsos]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
-    
+
     if (val.trim().length > 0) {
       const normalizedQuery = normalizeStr(val);
 
-      const exactMatches = searchIndex.list.filter(c => 
+      const exactMatches = searchIndex.list.filter(c =>
         c.normalizedName.includes(normalizedQuery)
       ).map(c => ({ label: c.name, iso: c.id }));
 
-      const aliasMatches = searchIndex.aliasList.filter(a => 
+      const aliasMatches = searchIndex.aliasList.filter(a =>
         a.normalizedAlias.includes(normalizedQuery)
       ).map(a => {
         const country = searchIndex.list.find(c => c.id === a.iso);
-        return { 
-          label: `${country?.name || a.iso} (${a.alias})`, 
-          iso: a.iso 
+        return {
+          label: `${country?.name || a.iso} (${a.alias})`,
+          iso: a.iso
         };
       });
 
       // Combine and filter out duplicate ISOs
       const combined = [...exactMatches, ...aliasMatches];
       const unique = Array.from(new Map(combined.map(item => [item.iso, item])).values());
-      
+
       setSuggestions(unique);
     } else {
       setSuggestions([]);
@@ -73,8 +78,8 @@ export default function InputAutocomplete({ onGuess, disabled }: InputAutocomple
 
   return (
     <div className="relative w-full max-w-md mx-auto z-10">
-      <input 
-        type="text" 
+      <input
+        type="text"
         value={query}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
@@ -85,8 +90,8 @@ export default function InputAutocomplete({ onGuess, disabled }: InputAutocomple
       {suggestions.length > 0 && (
         <ul className="absolute top-14 left-0 right-0 bg-white border border-green-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto z-20">
           {suggestions.map((c: any) => (
-            <li 
-              key={c.iso + c.label} 
+            <li
+              key={c.iso + c.label}
               className="px-4 py-2 hover:bg-green-100 cursor-pointer text-green-800"
               onClick={() => submitGuess(c.iso)}
             >

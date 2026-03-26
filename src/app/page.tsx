@@ -235,7 +235,11 @@ export default function Home() {
 
           {/* Input & Error */}
           <div className="flex flex-col gap-2 relative z-20 pointer-events-auto bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-md border border-slate-200 mb-4">
-            <InputAutocomplete onGuess={handleGuess} disabled={completed} />
+            <InputAutocomplete
+              onGuess={handleGuess}
+              disabled={completed}
+              ignoredIsos={origin ? [origin.id] : []}
+            />
             <div className="flex justify-center items-start w-full px-1">
               <p className="text-red-500 text-[13px] font-medium min-h-[20px] text-center leading-tight">{errorText}</p>
             </div>
