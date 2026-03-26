@@ -5,9 +5,10 @@
 ▲ Next.js 16.2.1 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.10.54:3000
-✓ Ready in 224ms
+✓ Ready in 209ms
 
- GET /?date=2026-03-10 200 in 2.7s (next.js: 2.5s, application-code: 118ms)
- GET /api/daily-puzzle?date=2026-03-10 200 in 262ms (next.js: 252ms, application-code: 10ms)
- GET /?date=2026-03-10 200 in 45ms (next.js: 8ms, application-code: 37ms)
- GET /api/daily-puzzle?date=2026-03-10 200 in 9ms (next.js: 4ms, application-code: 5ms)
+ GET /?date=2026-03-10 200 in 2.8s (next.js: 2.7s, application-code: 128ms)
+ GET /api/daily-puzzle?date=2026-03-10 200 in 262ms (next.js: 248ms, application-code: 14ms)
+ GET /?date=2026-03-10 200 in 46ms (next.js: 6ms, application-code: 41ms)
+ GET /api/daily-puzzle?date=2026-03-10 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ POST /api/validate-guess 200 in 137ms (next.js: 133ms, application-code: 4ms)

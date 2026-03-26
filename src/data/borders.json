@@ -47,7 +47,11 @@
   "ATA": [],
   "ATF": [],
   "ATG": [],
-  "AUS": [],
+  "AUS": [
+    "IDN",
+    "NZL",
+    "PNG"
+  ],
   "AUT": [
     "CZE",
     "DEU",
@@ -166,7 +170,8 @@
     "SDN"
   ],
   "CAN": [
-    "USA"
+    "USA",
+    "GRL"
   ],
   "CCK": [],
   "CHE": [
@@ -353,7 +358,8 @@
     "GNQ"
   ],
   "GBR": [
-    "IRL"
+    "IRL",
+    "ISL"
   ],
   "GEO": [
     "ARM",
@@ -397,7 +403,10 @@
     "MKD"
   ],
   "GRD": [],
-  "GRL": [],
+  "GRL": [
+    "CAN",
+    "ISL"
+  ],
   "GTM": [
     "BLZ",
     "SLV",
@@ -445,7 +454,9 @@
   "IDN": [
     "TLS",
     "MYS",
-    "PNG"
+    "PNG",
+    "AUS",
+    "SGP"
   ],
   "IMN": [],
   "IND": [
@@ -477,7 +488,10 @@
     "SYR",
     "TUR"
   ],
-  "ISL": [],
+  "ISL": [
+    "GRL",
+    "GBR"
+  ],
   "ISR": [
     "EGY",
     "JOR",
@@ -502,7 +516,10 @@
     "SAU",
     "SYR"
   ],
-  "JPN": [],
+  "JPN": [
+    "KOR",
+    "RUS"
+  ],
   "KAZ": [
     "CHN",
     "KGZ",
@@ -531,7 +548,8 @@
   "KIR": [],
   "KNA": [],
   "KOR": [
-    "PRK"
+    "PRK",
+    "JPN"
   ],
   "UNK": [
     "ALB",
@@ -613,7 +631,9 @@
     "ROU",
     "UKR"
   ],
-  "MDG": [],
+  "MDG": [
+    "MOZ"
+  ],
   "MDV": [],
   "MEX": [
     "BLZ",
@@ -663,7 +683,8 @@
     "SWZ",
     "TZA",
     "ZMB",
-    "ZWE"
+    "ZWE",
+    "MDG"
   ],
   "MRT": [
     "DZA",
@@ -682,7 +703,8 @@
   "MYS": [
     "BRN",
     "IDN",
-    "THA"
+    "THA",
+    "PHL"
   ],
   "MYT": [],
   "NAM": [
@@ -727,7 +749,9 @@
     "IND"
   ],
   "NRU": [],
-  "NZL": [],
+  "NZL": [
+    "AUS"
+  ],
   "OMN": [
     "SAU",
     "ARE",
@@ -751,10 +775,13 @@
     "COL",
     "ECU"
   ],
-  "PHL": [],
+  "PHL": [
+    "MYS"
+  ],
   "PLW": [],
   "PNG": [
-    "IDN"
+    "IDN",
+    "AUS"
   ],
   "POL": [
     "BLR",
@@ -810,7 +837,9 @@
     "MNG",
     "NOR",
     "POL",
-    "UKR"
+    "UKR",
+    "USA",
+    "JPN"
   ],
   "RWA": [
     "BDI",
@@ -843,7 +872,9 @@
     "MLI",
     "MRT"
   ],
-  "SGP": [],
+  "SGP": [
+    "IDN"
+  ],
   "SGS": [],
   "SJM": [],
   "SLB": [],
@@ -1007,7 +1038,8 @@
   ],
   "USA": [
     "CAN",
-    "MEX"
+    "MEX",
+    "RUS"
   ],
   "UZB": [
     "AFG",

@@ -100,6 +100,12 @@ export default function Home() {
         setGuessedIds(newGuessedIds);
       }
 
+      let newErrorIds = errorIds;
+      if (errorIds.includes(data.countryId)) {
+        newErrorIds = errorIds.filter(id => id !== data.countryId);
+        setErrorIds(newErrorIds);
+      }
+
       const isComplete = data.reachedDestination;
       if (isComplete) {
         setCompleted(true);
@@ -109,6 +115,7 @@ export default function Home() {
       saveGameState({
         ...currentState,
         guesses: newGuessedIds,
+        errors: newErrorIds,
         completed: isComplete
       });
 
@@ -238,7 +245,7 @@ export default function Home() {
             <InputAutocomplete
               onGuess={handleGuess}
               disabled={completed}
-              ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds] : [...guessedIds, ...errorIds]}
+              ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))] : [...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))]}
             />
             <div className="flex justify-center items-start w-full px-1">
               <p className="text-red-500 text-[13px] font-medium min-h-[20px] text-center leading-tight">{errorText}</p>

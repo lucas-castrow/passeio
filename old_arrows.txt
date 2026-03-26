@@ -1,0 +1,122 @@
+
+export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonRef, geoData }: any) {
+    const [arrows, setArrows] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!geoJsonRef.current || !currentFrontier) {
+            setArrows([]);
+            return;
+        }
+
+        let isMounted = true;
+        let attempts = 0;
+        
+        const calculateArrows = () => {
+            if (!isMounted) return;
+            
+            let fCenter: any = null;
+            let bCenters: any[] = [];
+            
+            if (!geoJsonRef.current) return;
+            
+            const layersToProcess: any[] = [];
+            geoJsonRef.current.eachLayer((layer: any) => {
+                const iso = layer.feature?.properties?.iso;
+                if (!iso) return;
+                
+                if (iso === currentFrontier) {
+                    if (layer.getBounds) fCenter = layer.getBounds().getCenter();
+                } else if (currentlyBordering.includes(iso)) {
+                    if (layer.getBounds) bCenters.push({ iso, center: layer.getBounds().getCenter() });
+                }
+            });
+
+            if (fCenter && bCenters.length > 0) {
+                const newArrows = bCenters.map(bc => {
+                    let lng1 = fCenter.lng;
+                    let lng2 = bc.center.lng;
+                    
+                    // Adjust for date line crossing (e.g. Russia -> USA)
+                    if (Math.abs(lng1 - lng2) > 180) {
+                        if (lng1 > lng2) lng2 += 360;
+                        else lng1 += 360;
+                    }
+                    
+                    const lat1 = fCenter.lat;
+                    const lat2 = bc.center.lat;
+
+                    const midLat = (lat1 + lat2) / 2;
+                    let midLng = (lng1 + lng2) / 2;
+                    if (midLng > 180) midLng -= 360;
+                    
+                    const angle = Math.atan2(lng2 - lng1, lat2 - lat1) * (180 / Math.PI);
+                    
+                    return {
+                        id: bc.iso,
+                        positions: [[lat1, fCenter.lng], [lat2, bc.center.lng]],
+                        // we must draw continuous line, if they crossed dateline, 
+                        // simple positions with raw longitude works better visually often in leaflet or it wraps around world.
+                        // Let's use the adjusted wrapping
+                        midLat,
+                        midLng,
+                        adjustedPos: [[lat1, lng1], [lat2, lng2]],
+                        angle
+                    };
+                });
+                setArrows(newArrows);
+            } else if (attempts < 10) {
+                attempts++;
+                setTimeout(calculateArrows, 200);
+            } else {
+                setArrows([]);
+            }
+        };
+
+        const timer = setTimeout(calculateArrows, 100);
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
+    }, [currentFrontier, currentlyBordering, geoJsonRef, geoData]);
+
+    if (arrows.length === 0) return null;
+
+    return (
+        <>
+            {arrows.map((arr) => {
+                // If it crosses dateline significantly, drawing a standard polyline might streak across the whole map.
+                // We'll trust Leaflet to handle the wrapped longitudes!
+                const positions = arr.adjustedPos; 
+                return (
+                <div key={arr.id}>
+                    <Polyline 
+                        positions={positions as [number, number][]} 
+                        pathOptions={{ color: '#fbbf24', weight: 4, dashArray: '6,6', opacity: 0.9 }} 
+                    />
+                    <Marker 
+                        position={[arr.midLat, arr.midLng]} 
+                        icon={L.divIcon({
+                            html: `<div style="transform: rotate(${arr.angle}deg); display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #fbbf24; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.5);"><div style="width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid white; margin-bottom: 2px;"></div></div>`,
+                            className: '',
+                            iconSize: [16, 16],
+                            iconAnchor: [8, 8]
+                        })}
+                    />
+                </div>
+                );
+            })}
+        </>
+    );
+}
+
+        const timer = setTimeout(() => {
+            let fCenter: any = null;
+            let bCenters: any[] = [];
+            
+            if (!geoJsonRef.current) return;
+            
+            geoJsonRef.current.eachLayer((layer: any) => {
+                const iso = layer.feature?.properties?.iso;
+                if (!iso) return;
+                

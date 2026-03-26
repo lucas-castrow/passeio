@@ -127,7 +127,6 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
         <MapCenterController geoJsonRef={geoJsonRef} focusIso={originId} />
-        <ArrowsController currentFrontier={currentFrontier} currentlyBordering={currentlyBordering} geoJsonRef={geoJsonRef} />
         {geoData && (
           <GeoJSON
             ref={geoJsonRef}
@@ -142,6 +141,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
             }}
           />
         )}
+        <ArrowsController currentFrontier={currentFrontier} currentlyBordering={currentlyBordering} geoJsonRef={geoJsonRef} geoData={geoData} />
       </MapContainer>
       <style>{`
         .country-label {
@@ -154,6 +154,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
     </div>
   );
 }
+
 export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: React.RefObject<any>, focusIso: string | null }) {
   const map = useMap();
 
@@ -165,7 +166,7 @@ export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: Reac
       if (!geoJsonRef.current) return;
       const layers = geoJsonRef.current.getLayers();
       const targetLayer = layers.find((l: any) => l.feature?.properties?.iso === focusIso);
-
+      
       if (targetLayer && targetLayer.getBounds) {
         map.flyToBounds(targetLayer.getBounds(), { padding: [50, 50], duration: 1.5, maxZoom: 4 });
       }
@@ -175,17 +176,21 @@ export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: Reac
   return null;
 }
 
-
-export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonRef }: any) {
+export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonRef, geoData }: any) {
     const [arrows, setArrows] = useState<any[]>([]);
 
     useEffect(() => {
-        if (!geoJsonRef.current || !currentFrontier) {
+        if (!geoJsonRef.current || !currentFrontier || currentlyBordering.length === 0) {
             setArrows([]);
             return;
         }
 
-        const timer = setTimeout(() => {
+        let isMounted = true;
+        let attempts = 0;
+        
+        const calculateArrows = () => {
+            if (!isMounted) return;
+            
             let fCenter: any = null;
             let bCenters: any[] = [];
             
@@ -202,20 +207,29 @@ export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonR
                 }
             });
 
-            if (fCenter) {
+            if (fCenter && bCenters.length > 0) {
                 const newArrows = bCenters.map(bc => {
+                    let lng1 = fCenter.lng;
+                    let lng2 = bc.center.lng;
+                    
+                    // Adjust for date line crossing
+                    if (Math.abs(lng1 - lng2) > 180) {
+                        if (lng1 > lng2) lng2 += 360;
+                        else lng1 += 360;
+                    }
+                    
                     const lat1 = fCenter.lat;
-                    const lng1 = fCenter.lng;
                     const lat2 = bc.center.lat;
-                    const lng2 = bc.center.lng;
 
                     const midLat = (lat1 + lat2) / 2;
-                    const midLng = (lng1 + lng2) / 2;
+                    let midLng = (lng1 + lng2) / 2;
+                    if (midLng > 180) midLng -= 360;
                     
                     const angle = Math.atan2(lng2 - lng1, lat2 - lat1) * (180 / Math.PI);
                     
                     return {
                         id: bc.iso,
+                        // positions must pass continuous line for rendering without streak across world
                         positions: [[lat1, lng1], [lat2, lng2]],
                         midLat,
                         midLng,
@@ -223,35 +237,45 @@ export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonR
                     };
                 });
                 setArrows(newArrows);
+            } else if (attempts < 15) {
+                attempts++;
+                setTimeout(calculateArrows, 300);
             } else {
                 setArrows([]);
             }
-        }, 100);
+        };
 
-        return () => clearTimeout(timer);
-    }, [currentFrontier, currentlyBordering, geoJsonRef]);
+        const timer = setTimeout(calculateArrows, 150);
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
+    }, [currentFrontier, currentlyBordering, geoJsonRef, geoData]);
 
     if (arrows.length === 0) return null;
 
     return (
-        <>
-            {arrows.map((arr) => (
+        <div style={{zIndex: 999}}>
+            {arrows.map((arr) => {
+                return (
                 <div key={arr.id}>
                     <Polyline 
                         positions={arr.positions as [number, number][]} 
-                        pathOptions={{ color: '#fbbf24', weight: 3, dashArray: '5,5', opacity: 0.8 }} 
+                        pathOptions={{ color: '#fbbf24', weight: 4, dashArray: '6,6', opacity: 0.9 }} 
                     />
                     <Marker 
                         position={[arr.midLat, arr.midLng]} 
                         icon={L.divIcon({
-                            html: `<div style="transform: rotate(${arr.angle}deg); display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #fbbf24; border-radius: 50%; border: 1.5px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"><div style="width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 5px solid white; margin-bottom: 1px;"></div></div>`,
+                            html: `<div style="transform: rotate(\${arr.angle}deg); display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #fbbf24; border-radius: 50%; border: 1.5px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.5);"><div style="width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid white; margin-bottom: 1px;"></div></div>`,
                             className: '',
                             iconSize: [14, 14],
                             iconAnchor: [7, 7]
                         })}
                     />
                 </div>
-            ))}
-        </>
+                );
+            })}
+        </div>
     );
 }
