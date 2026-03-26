@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, Polyline, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import type { FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
@@ -28,7 +28,10 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
     return c ? c.name : iso;
   };
 
-  const currentFrontier = guessedIds.length > 0 ? guessedIds[guessedIds.length - 1] : originId;
+  const isCompleted = destId && guessedIds.includes(destId);
+  const currentFrontier = guessedIds.length > 0 
+      ? (isCompleted && guessedIds.length > 1 ? guessedIds[guessedIds.length - 2] : (isCompleted ? originId : guessedIds[guessedIds.length - 1]))
+      : originId;
 
   // Memoize borders so it doesn't recalculate on every render loosely
   const currentlyBordering = useMemo(() => {
@@ -52,7 +55,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         let isYellow = false;
         let isCurrent = false;
 
-        if (iso === originId || iso === destId) {
+        if (iso === originId || (iso === destId && destId && !guessedIds.includes(destId))) {
           fillOpacity = 0.6;
           color = '#3b82f6';
           borderColor = 'white';
@@ -91,7 +94,8 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
           let labelText = getCountryName(iso);
           if (guessedIds.includes(iso)) {
             const index = guessedIds.indexOf(iso) + 1;
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso)}</span></div>`;
+            let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">Destino</div>` : '';
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso)}</span></div>`;
           } else if (iso === originId) {
             labelText = `<div class="text-xs uppercase tracking-wider text-blue-600 bg-white/70 px-1 rounded mb-0.5">Origem</div>${getCountryName(iso)}`;
           } else if (iso === destId) {
@@ -123,6 +127,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
         <MapCenterController geoJsonRef={geoJsonRef} focusIso={originId} />
+        <ArrowsController currentFrontier={currentFrontier} currentlyBordering={currentlyBordering} geoJsonRef={geoJsonRef} />
         {geoData && (
           <GeoJSON
             ref={geoJsonRef}
@@ -168,4 +173,85 @@ export function MapCenterController({ geoJsonRef, focusIso }: { geoJsonRef: Reac
   }, [map, geoJsonRef, focusIso]);
 
   return null;
+}
+
+
+export function ArrowsController({ currentFrontier, currentlyBordering, geoJsonRef }: any) {
+    const [arrows, setArrows] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!geoJsonRef.current || !currentFrontier) {
+            setArrows([]);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            let fCenter: any = null;
+            let bCenters: any[] = [];
+            
+            if (!geoJsonRef.current) return;
+            
+            geoJsonRef.current.eachLayer((layer: any) => {
+                const iso = layer.feature?.properties?.iso;
+                if (!iso) return;
+                
+                if (iso === currentFrontier) {
+                    if (layer.getBounds) fCenter = layer.getBounds().getCenter();
+                } else if (currentlyBordering.includes(iso)) {
+                    if (layer.getBounds) bCenters.push({ iso, center: layer.getBounds().getCenter() });
+                }
+            });
+
+            if (fCenter) {
+                const newArrows = bCenters.map(bc => {
+                    const lat1 = fCenter.lat;
+                    const lng1 = fCenter.lng;
+                    const lat2 = bc.center.lat;
+                    const lng2 = bc.center.lng;
+
+                    const midLat = (lat1 + lat2) / 2;
+                    const midLng = (lng1 + lng2) / 2;
+                    
+                    const angle = Math.atan2(lng2 - lng1, lat2 - lat1) * (180 / Math.PI);
+                    
+                    return {
+                        id: bc.iso,
+                        positions: [[lat1, lng1], [lat2, lng2]],
+                        midLat,
+                        midLng,
+                        angle
+                    };
+                });
+                setArrows(newArrows);
+            } else {
+                setArrows([]);
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [currentFrontier, currentlyBordering, geoJsonRef]);
+
+    if (arrows.length === 0) return null;
+
+    return (
+        <>
+            {arrows.map((arr) => (
+                <div key={arr.id}>
+                    <Polyline 
+                        positions={arr.positions as [number, number][]} 
+                        pathOptions={{ color: '#fbbf24', weight: 3, dashArray: '5,5', opacity: 0.8 }} 
+                    />
+                    <Marker 
+                        position={[arr.midLat, arr.midLng]} 
+                        icon={L.divIcon({
+                            html: `<div style="transform: rotate(${arr.angle}deg); display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #fbbf24; border-radius: 50%; border: 1.5px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"><div style="width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 5px solid white; margin-bottom: 1px;"></div></div>`,
+                            className: '',
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7]
+                        })}
+                    />
+                </div>
+            ))}
+        </>
+    );
 }

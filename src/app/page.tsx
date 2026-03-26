@@ -238,7 +238,7 @@ export default function Home() {
             <InputAutocomplete
               onGuess={handleGuess}
               disabled={completed}
-              ignoredIsos={origin ? [origin.id] : []}
+              ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds] : [...guessedIds, ...errorIds]}
             />
             <div className="flex justify-center items-start w-full px-1">
               <p className="text-red-500 text-[13px] font-medium min-h-[20px] text-center leading-tight">{errorText}</p>
