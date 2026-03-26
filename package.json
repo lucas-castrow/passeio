@@ -3,19 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "bash -c 'source ~/.nvm/nvm.sh 2>/dev/null && nvm use 20 >/dev/null 2>&1 || true; exec next dev'",
+    "build": "bash -c 'source ~/.nvm/nvm.sh 2>/dev/null && nvm use 20 >/dev/null 2>&1 || true; exec next build'",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/leaflet": "^1.9.21",
+    "crypto-js": "^4.2.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.2",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/estree": "^1.0.8",
+    "@types/geojson": "^7946.0.16",
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "^20.19.37",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
