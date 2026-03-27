@@ -6,7 +6,7 @@ import type { FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { countries, countryGraph, getCountryName } from '@/lib/countries';
 import { useParams } from 'next/navigation';
-import BorderArrow from './BorderArrow';
+// Border arrows removed — visualized via darker neighbor fill instead
 
 interface MapProps {
   originId: string | null;
@@ -52,77 +52,82 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
 
   // We use imperative updates to avoid re-rendering the heavy SVG layer
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!geoJsonRef.current) return;
+    if (!geoJsonRef.current) return;
 
-      geoJsonRef.current.eachLayer((layer: any) => {
-        const iso = layer.feature.properties.iso;
+    geoJsonRef.current.eachLayer((layer: any) => {
+      const iso = layer.feature.properties.iso;
 
-        // Calculate style
-        let fillOpacity = 1;
-        let color = '#e2e8f0'; // slate-200
-        let weight = 1;
-        let borderColor = '#94a3b8'; // slate-400
+      // Calculate style
+      let fillOpacity = 1;
+      let color = '#e2e8f0'; // slate-200
+      let weight = 1;
+      let borderColor = '#94a3b8'; // slate-400
 
-        let isYellow = false;
-        let isCurrent = false;
+      let isYellow = false;
+      let isCurrent = false;
 
-        if (iso === originId || (iso === destId && destId && !guessedIds.includes(destId))) {
-          fillOpacity = 0.6;
-          color = '#3b82f6';
-          borderColor = 'white';
-          weight = 2;
-        } else if (guessedIds.includes(iso)) {
-          fillOpacity = 0.6;
-          color = '#22c55e';
-          borderColor = 'white';
-          weight = 2;
-          if (iso === currentFrontier) isCurrent = true;
-        } else if (errorIds.includes(iso)) {
-          isYellow = currentlyBordering.includes(iso);
-          fillOpacity = 0.6;
-          color = isYellow ? '#eab308' : '#ef4444';
-          borderColor = 'white';
-          weight = 2;
-        }
+      if (iso === originId || (iso === destId && destId && !guessedIds.includes(destId))) {
+        fillOpacity = 0.6;
+        color = '#3b82f6';
+        borderColor = 'white';
+        weight = 2;
+      } else if (guessedIds.includes(iso)) {
+        fillOpacity = 0.6;
+        color = '#22c55e';
+        borderColor = 'white';
+        weight = 2;
+        if (iso === currentFrontier) isCurrent = true;
+      } else if (errorIds.includes(iso)) {
+        isYellow = currentlyBordering.includes(iso);
+        fillOpacity = 0.6;
+        color = isYellow ? '#eab308' : '#ef4444';
+        borderColor = 'white';
+        weight = 2;
+      }
 
-        layer.setStyle({
-          fillColor: color,
-          weight: weight,
-          opacity: 1,
-          color: borderColor,
-          fillOpacity: fillOpacity
-        });
+      // If it's a neighboring country (but not origin/dest/guessed/error), mark with the same yellow hint color
+      else if (currentlyBordering.includes(iso) && !guessedIds.includes(iso) && !errorIds.includes(iso) && iso !== originId && iso !== destId) {
+        color = '#eab308'; // same yellow as the "border hint"
+        fillOpacity = 0.6;
+        borderColor = 'white';
+        weight = 2;
+      }
 
-        // Handle label/tooltips removal first
-        if (layer.getTooltip()) {
-          layer.unbindTooltip();
-        }
-
-        // Re-bind tooltips dynamically
-        if (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso)) {
-          const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
-
-          let labelText = getCountryName(iso, lang);
-          if (guessedIds.includes(iso)) {
-            const index = guessedIds.indexOf(iso) + 1;
-            let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso, lang)}</span></div>`;
-          } else if (iso === originId) {
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
-          } else if (iso === destId) {
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
-          }
-
-          layer.bindTooltip(labelText, {
-            permanent: true,
-            direction: "center",
-            className: `country-label font-bold text-[13px] bg-transparent border-none shadow-none ${textColorClass}`
-          });
-        }
+      layer.setStyle({
+        fillColor: color,
+        weight: weight,
+        opacity: 1,
+        color: borderColor,
+        fillOpacity: fillOpacity
       });
-    }, 50); // Small 50ms delay queue to ensure layer is completely mounted
-    return () => clearTimeout(timer);
+
+      // Handle label/tooltips removal first
+      if (layer.getTooltip()) {
+        layer.unbindTooltip();
+      }
+
+      // Re-bind tooltips dynamically
+      if (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso)) {
+        const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
+
+        let labelText = getCountryName(iso, lang);
+        if (guessedIds.includes(iso)) {
+          const index = guessedIds.indexOf(iso) + 1;
+          let extra = (iso === destId) ? `<div class=\"text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1\">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
+          labelText = `<div class=\"flex flex-col items-center justify-center -mt-2\"><div class=\"bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm\">${index}</div>${extra}<span class=\"mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight\">${getCountryName(iso, lang)}</span></div>`;
+        } else if (iso === originId) {
+          labelText = `<div class=\"flex flex-col items-center justify-center -mt-2\"><div class=\"text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black\">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class=\"mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800\">${getCountryName(iso, lang)}</span></div>`;
+        } else if (iso === destId) {
+          labelText = `<div class=\"flex flex-col items-center justify-center -mt-2\"><div class=\"text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black\">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class=\"mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800\">${getCountryName(iso, lang)}</span></div>`;
+        }
+
+        layer.bindTooltip(labelText, {
+          permanent: true,
+          direction: "center",
+          className: `country-label font-bold text-[13px] bg-transparent border-none shadow-none ${textColorClass}`
+        });
+      }
+    });
   }, [geoData, originId, destId, guessedIds, errorIds, currentlyBordering, focusErrorIso]);
 
   return (
@@ -157,7 +162,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
             }}
           />
         )}
-        <ArrowsController currentFrontier={currentFrontier} currentlyBordering={currentlyBordering} geoJsonRef={geoJsonRef} geoData={geoData} />
+        {/* Arrows removed — neighbor countries are shown by a darker fill color. */}
       </MapContainer>
       <style>{`
         .country-label {
@@ -201,25 +206,4 @@ export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: 
   return null;
 }
 
-export function ArrowsController({ currentFrontier, currentlyBordering, geoData }: any) {
-  if (!geoData || !currentFrontier || !currentlyBordering || currentlyBordering.length === 0) return null;
-
-  const frontierFeature = geoData.features.find((f: any) => f.properties?.iso === currentFrontier);
-  if (!frontierFeature) return null;
-
-  const borderingFeatures = geoData.features.filter((f: any) => currentlyBordering.includes(f.properties?.iso));
-
-  if (borderingFeatures.length === 0) return null;
-
-  return (
-    <div style={{ zIndex: 999 }}>
-      {borderingFeatures.map((bFeature: any) => (
-        <BorderArrow
-          key={bFeature.properties.iso}
-          countryA={frontierFeature}
-          countryB={bFeature}
-        />
-      ))}
-    </div>
-  );
-}
+// ArrowsController removed — arrows replaced by darker neighbor fill.
