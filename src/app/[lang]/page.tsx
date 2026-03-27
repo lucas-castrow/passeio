@@ -26,7 +26,8 @@ export default function Home() {
   const [minSteps, setMinSteps] = useState(0);
   const [idealPath, setIdealPath] = useState<string[]>([]);
 
-  const [guessedIds, setGuessedIds] = useState<string[]>([]);
+  const [pathHistory, setPathHistory] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [errorIds, setErrorIds] = useState<string[]>([]);
   const [completed, setCompleted] = useState(false);
   const [showSuccessModal, setShowSuccess] = useState(false);
@@ -56,10 +57,21 @@ export default function Home() {
           setShowIntro(true);
           const newState: GameState = { date: data.date, guesses: [], errors: [], completed: false };
           saveGameState(newState);
+          setPathHistory([]);
+          setCurrentIndex(-1);
         } else {
-          setGuessedIds(savedState.guesses);
+          const loadedGuesses = savedState.guesses || [];
+          setPathHistory(loadedGuesses);
+          setCurrentIndex(loadedGuesses.length - 1);
           setErrorIds(savedState.errors || []);
           setCompleted(savedState.completed);
+        }
+
+        // Foco inicial: o mapa deve centralizar na origem ao iniciar a partida.
+        if (data.origin?.id) {
+          setTimeout(() => {
+            setFocusErrorIso(data.origin.id);
+          }, 500);
         }
       } catch (err) {
         console.error("Failed to load daily puzzle", err);
@@ -76,6 +88,17 @@ export default function Home() {
 
     try {
       setErrorText('');
+      const currentPath = pathHistory;
+
+      // Do not allow guessing the same country where the player is currently located.
+      if (isoCode === currentFrontier) {
+        setErrorText(t.invalidAttempt || 'Tentativa inválida: país atual.');
+        // Force refresh of map colors to keep the current state visible.
+        setPathHistory(prev => [...prev]);
+        setFocusErrorIso(currentFrontier);
+        return;
+      }
+
       const res = await fetch('/api/validate-guess', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,13 +106,18 @@ export default function Home() {
           isoCode,
           originId: origin.id,
           destId: destination.id,
-          currentGuesses: guessedIds
+          currentGuesses: currentPath
         })
       });
 
       const data = await res.json();
 
       const currentState = loadGameState(currentDateString) || { date: currentDateString, guesses: [], errors: [], completed: false };
+
+      if (isoCode === currentFrontier) {
+        setErrorText(t.invalidAttempt);
+        return;
+      }
 
       if (!res.ok || !data.valid) {
         setErrorText(data.message || data.error || t.invalidAttempt);
@@ -104,16 +132,14 @@ export default function Home() {
         return;
       }
 
-      const newGuessedIds = [...guessedIds, data.countryId];
-      if (!guessedIds.includes(data.countryId)) {
-        setGuessedIds(newGuessedIds);
+      // Direct valid guess — append even if it was visited before (allow revisit)
+      if (data.countryId === currentFrontier) {
+        return;
       }
 
-      let newErrorIds = errorIds;
-      if (errorIds.includes(data.countryId)) {
-        newErrorIds = errorIds.filter(id => id !== data.countryId);
-        setErrorIds(newErrorIds);
-      }
+      const nextPath = [...pathHistory, data.countryId];
+      setPathHistory(nextPath);
+      setCurrentIndex(nextPath.length - 1);
 
       const isComplete = data.reachedDestination;
       if (isComplete) {
@@ -121,11 +147,13 @@ export default function Home() {
         setShowSuccess(true);
       }
 
+      // persist the full pathHistory and currentIndex
       saveGameState({
         ...currentState,
-        guesses: newGuessedIds,
-        errors: newErrorIds,
-        completed: isComplete
+        guesses: nextPath,
+        errors: errorIds,
+        completed: isComplete,
+        currentIndex: nextPath.length - 1
       });
 
     } catch (err) {
@@ -135,18 +163,38 @@ export default function Home() {
   };
 
   const undoGuess = (index: number) => {
-    if (index < 0 || index >= guessedIds.length) return;
+    // Only allow direct backward move to an adjacent country (fronteira direta).
+    if (index < 0 || index >= pathHistory.length) return;
 
-    // Slice removes the clicked element and everything after it
-    const newGuessedIds = guessedIds.slice(0, index);
-    setGuessedIds(newGuessedIds);
-    setCompleted(false);
+    const targetIso = pathHistory[index];
+    const fromIso = pathHistory.length > 0 ? pathHistory[pathHistory.length - 1] : (origin?.id || null);
+    if (!fromIso || fromIso === targetIso) return;
+
+    if (!countryGraph[fromIso]?.includes(targetIso)) {
+      setErrorText(t.invalidAttempt);
+      return;
+    }
+
+    const nextFullPath = [...pathHistory, targetIso];
+    const newErrorIds = [...errorIds];
+    const isComplete = targetIso === destination?.id;
+
+    if (isComplete) {
+      setCompleted(true);
+      setShowSuccess(true);
+    }
+
+    setPathHistory(nextFullPath);
+    setCurrentIndex(nextFullPath.length - 1);
+    setErrorIds(newErrorIds);
 
     const currentState = loadGameState(currentDateString) || { date: currentDateString, guesses: [], errors: [], completed: false };
     saveGameState({
       ...currentState,
-      guesses: newGuessedIds,
-      completed: false
+      guesses: nextFullPath,
+      errors: newErrorIds,
+      completed: isComplete,
+      currentIndex: nextFullPath.length - 1
     });
   };
 
@@ -157,7 +205,8 @@ export default function Home() {
     return c ? c.name : iso;
   };
 
-  const currentFrontier = guessedIds.length > 0 ? guessedIds[guessedIds.length - 1] : (origin?.id || null);
+  const currentPath = pathHistory;
+  const currentFrontier = currentPath.length > 0 ? currentPath[currentPath.length - 1] : (origin?.id || null);
   const currentlyBordering = currentFrontier ? (countryGraph[currentFrontier] || []) : [];
 
   if (loading) {
@@ -169,7 +218,7 @@ export default function Home() {
       <IntroModal isOpen={showIntro} onClose={() => setShowIntro(false)} origin={origin?.name || ''} destination={destination?.name || ''} t={t} />
 
       <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccess(false)} t={t}
-        guessedIds={guessedIds}
+        guessedIds={currentPath}
         idealPath={idealPath}
         minSteps={minSteps}
       />
@@ -195,7 +244,7 @@ export default function Home() {
           <InteractiveMap
             originId={origin?.id || null}
             destId={destination?.id || null}
-            guessedIds={guessedIds}
+            guessedIds={currentPath}
             errorIds={errorIds}
             focusErrorIso={focusErrorIso}
             setFocusErrorIso={setFocusErrorIso}
@@ -263,7 +312,7 @@ export default function Home() {
                 disabledText={t.alreadyArrived}
                 onGuess={handleGuess}
                 disabled={completed}
-                ignoredIsos={origin ? [origin.id, ...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))] : [...guessedIds, ...errorIds.filter(e => !currentlyBordering.includes(e))]}
+                ignoredIsos={[...errorIds.filter(e => !currentlyBordering.includes(e))]}
               />
               <div className="flex justify-center items-start w-full px-1">
                 <p className="text-red-600 bg-red-50/90 px-2 rounded-md backdrop-blur inline-block text-[13px] font-bold min-h-[20px] text-center leading-tight mx-auto">{errorText}</p>
@@ -271,41 +320,29 @@ export default function Home() {
             </div>
 
             {/* Output Sequential list of guessed countries */}
-            {(guessedIds.length > 0 || errorIds.length > 0) && (
+            {(currentPath.length > 0 || errorIds.length > 0) && (
               <div className={`w-full transition-all duration-300 ease-in-out ${isMobilePanelOpen ? "max-h-[40vh] opacity-100" : "max-h-0 opacity-0 lg:max-h-[45vh] lg:opacity-100"} overflow-hidden lg:overflow-visible`}>
                 <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-md border border-slate-200 w-full pointer-events-auto h-full max-h-[40vh] lg:max-h-[45vh] overflow-y-auto custom-scrollbar">
 
-                  {guessedIds.length > 0 && (
+                  {currentPath.length > 0 && (
                     <>
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Seu Caminho:</h3>
-                        {!completed && (
-                          <button
-                            onClick={() => undoGuess(guessedIds.length - 1)}
-                            className="text-[10px] bg-red-50 text-red-500 hover:bg-red-100 px-2 py-1 rounded-md font-bold transition-colors flex items-center gap-1"
-                            title="Desfazer último país"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg>
-                            Desfazer Último
-                          </button>
-                        )}
                       </div>
 
                       {!completed && (
-                        <p className="text-[10px] text-slate-400 mb-3 italic">Dica: Clique em qualquer país abaixo para desfazer a rota a partir dele.</p>
+                        <p className="text-[10px] text-slate-400 mb-3 italic">Dica: este histórico mostra o caminho percorrido.</p>
                       )}
 
                       <ul className="flex flex-wrap gap-2 justify-center">
-                        {guessedIds.map((iso, i) => (
+                        {currentPath.map((iso, i) => (
                           <li
                             key={`guess-${i}`}
-                            onClick={() => !completed && undoGuess(i)}
-                            title={!completed ? "Clique para remover este país e os seguintes" : ""}
-                            className={`bg-green-100 text-green-800 text-sm py-1 px-3 rounded-full flex items-center gap-1 font-semibold group ${!completed ? 'cursor-pointer hover:bg-red-500 hover:text-white transition-colors' : ''}`}
+                            className="bg-green-100 text-green-800 text-sm py-1 px-3 rounded-full flex items-center gap-1 font-semibold"
                           >
-                            <span className={`font-normal text-[10px] ${!completed ? 'text-green-500 group-hover:text-red-200' : 'text-green-500'}`}>{i + 1}.</span>
-                            <span className={!completed ? "group-hover:line-through" : ""}>{getCountryName(iso)}</span>
-                            {i < guessedIds.length - 1 && <span className={`text-green-300 ml-1 ${!completed ? 'group-hover:text-red-300' : ''}`}>→</span>}
+                            <span className={`font-normal text-[10px] text-green-500`}>{i + 1}.</span>
+                            <span className="ml-1">{getCountryName(iso)}</span>
+                            {i < currentPath.length - 1 && <span className={`text-green-300 ml-1`}>→</span>}
                           </li>
                         ))}
                       </ul>
@@ -313,7 +350,7 @@ export default function Home() {
                   )}
 
                   {errorIds.length > 0 && (
-                    <div className={`pt-3 ${guessedIds.length > 0 ? 'mt-4 border-t border-slate-200' : ''}`}>
+                    <div className={`pt-3 ${currentPath.length > 0 ? 'mt-4 border-t border-slate-200' : ''}`}>
                       <h3 className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2 text-center">{t.wrongAttempts}</h3>
                       <ul className="flex flex-wrap gap-1.5 justify-center">
                         {errorIds.map((iso, i) => {

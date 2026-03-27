@@ -8,16 +8,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    if (currentGuesses.includes(isoCode)) {
-        return NextResponse.json({
-            valid: false,
-            message: 'Você já digitou este país.',
-            mapUpdate: []
-        });
-    }
-
     const borders = countryGraph[isoCode] || [];
-
     if (!countryGraph[isoCode]) {
         return NextResponse.json({ error: 'Código ISO inválido ou país fora da nossa base terrestre.' }, { status: 404 });
     }
@@ -25,6 +16,14 @@ export async function POST(request: Request) {
     // The logic MUST be sequential:
     // The first guess MUST border the 'originId'.
     // Every subsequent guess MUST border the LAST guessed country.
+
+    if (currentGuesses.length > 0 && currentGuesses[currentGuesses.length - 1] === isoCode) {
+        return NextResponse.json({
+            valid: false,
+            message: 'Você já está nesse país.',
+            mapUpdate: []
+        });
+    }
 
     const expectedNeighbor = currentGuesses.length === 0
         ? originId

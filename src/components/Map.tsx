@@ -31,6 +31,11 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
     }, [map]);
     return null;
   }
+  useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.invalidateSize();
+    }
+  }, [geoData]);
 
   useEffect(() => {
     fetch('/countries.geojson?v=3')
@@ -66,17 +71,26 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
       let isYellow = false;
       let isCurrent = false;
 
-      if (iso === originId || (iso === destId && destId && !guessedIds.includes(destId))) {
+      if (iso === originId) {
+        fillOpacity = 0.6;
+        color = '#3b82f6';
+        borderColor = 'white';
+        weight = 2;
+      } else if (iso === destId && destId && !guessedIds.includes(destId)) {
         fillOpacity = 0.6;
         color = '#3b82f6';
         borderColor = 'white';
         weight = 2;
       } else if (guessedIds.includes(iso)) {
         fillOpacity = 0.6;
-        color = '#22c55e';
+        if (iso === currentFrontier) {
+          color = '#22c55e';
+          isCurrent = true;
+        } else {
+          color = '#94a3b8';
+        }
         borderColor = 'white';
         weight = 2;
-        if (iso === currentFrontier) isCurrent = true;
       } else if (errorIds.includes(iso)) {
         isYellow = currentlyBordering.includes(iso);
         fillOpacity = 0.6;
@@ -111,14 +125,20 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
 
         let labelText = getCountryName(iso, lang);
-        if (guessedIds.includes(iso)) {
-          const index = guessedIds.indexOf(iso) + 1;
-          let extra = (iso === destId) ? `<div class=\"text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1\">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
-          labelText = `<div class=\"flex flex-col items-center justify-center -mt-2\"><div class=\"bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm\">${index}</div>${extra}<span class=\"mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight\">${getCountryName(iso, lang)}</span></div>`;
-        } else if (iso === originId) {
-          labelText = `<div class=\"flex flex-col items-center justify-center -mt-2\"><div class=\"text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black\">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class=\"mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800\">${getCountryName(iso, lang)}</span></div>`;
+
+        if (iso === originId) {
+          labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
         } else if (iso === destId) {
-          labelText = `<div class=\"flex flex-col items-center justify-center -mt-2\"><div class=\"text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black\">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class=\"mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800\">${getCountryName(iso, lang)}</span></div>`;
+          labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
+        } else if (guessedIds.includes(iso)) {
+          const isCurrentStep = iso === currentFrontier;
+          const index = guessedIds.lastIndexOf(iso) + 1;
+          let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
+          if (isCurrentStep) {
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso, lang)}</span></div>`;
+          } else {
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2">${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso, lang)}</span></div>`;
+          }
         }
 
         layer.bindTooltip(labelText, {
@@ -147,7 +167,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
         <MapReadySetter mapRef={mapRef} />
-        <MapCenterController geoJsonRef={geoJsonRef} focusIso={focusErrorIso || originId} setFocusErrorIso={setFocusErrorIso} />
+        <MapCenterController geoJsonRef={geoJsonRef} focusIso={focusErrorIso} setFocusErrorIso={setFocusErrorIso} />
         {geoData && (
           <GeoJSON
             ref={geoJsonRef}
@@ -196,7 +216,7 @@ export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: 
           [bbox[1], bbox[0]], // SouthWest: [minLat, minLng]
           [bbox[3], bbox[2]]  // NorthEast: [maxLat, maxLng]
         );
-        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5, maxZoom: 6 });
+        map.flyToBounds(bounds, { padding: [50, 50], duration: 3.5, maxZoom: 6 });
         // After animation ends, clear focus to allow styles to reapply normally
         if (setFocusErrorIso) setTimeout(() => setFocusErrorIso(null), 1600);
       }

@@ -8,6 +8,7 @@ export interface DailyState {
     guesses: string[];
     errors: string[];
     completed: boolean;
+    currentIndex?: number;
 }
 
 export interface GameState {
@@ -15,6 +16,7 @@ export interface GameState {
     guesses: string[];
     errors: string[];
     completed: boolean;
+    currentIndex?: number;
 }
 
 // Internal format stored in localStorage
@@ -45,6 +47,10 @@ export function saveGameState(state: GameState): void {
             errors: state.errors,
             completed: state.completed
         };
+        // store currentIndex if provided
+        if (typeof state.currentIndex === 'number') {
+            globalState.days[state.date].currentIndex = state.currentIndex;
+        }
 
         const stringified = JSON.stringify(globalState);
         const newEncrypted = CryptoJS.AES.encrypt(stringified, SECRET_SALT).toString();
@@ -76,7 +82,8 @@ export function loadGameState(specificDate?: string): GameState | null {
             date: targetDate,
             guesses: dayState.guesses,
             errors: dayState.errors,
-            completed: dayState.completed
+            completed: dayState.completed,
+            currentIndex: typeof dayState.currentIndex === 'number' ? dayState.currentIndex : undefined
         };
     } catch (error) {
         console.error('Failed to load game state', error);
