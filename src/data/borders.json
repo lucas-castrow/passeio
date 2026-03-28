@@ -1,5 +1,5 @@
 {
-  "ABW": [],
+  "ABW": ["VEN", "CUW"],
   "AFG": [
     "IRN",
     "PAK",
@@ -14,8 +14,8 @@
     "ZMB",
     "NAM"
   ],
-  "AIA": [],
-  "ALA": [],
+  "AIA": ["MAF", "KNA"]
+  "ALA": ["FIN", "SWE"],
   "ALB": [
     "MNE",
     "GRC",
@@ -43,10 +43,10 @@
     "IRN",
     "TUR"
   ],
-  "ASM": [],
-  "ATA": [],
-  "ATF": [],
-  "ATG": [],
+  "ASM": ["WSM", "TON"],
+  "ATA": ["ARG", "CHL"],
+  "ATF": ["REU", "ZAF"],
+  "ATG": ["GLP", "KNA"],
   "AUS": [
     "IDN",
     "NZL",
@@ -105,15 +105,15 @@
     "SRB",
     "TUR"
   ],
-  "BHR": [],
-  "BHS": [],
+  "BHR": ["SAU"],
+  "BHS": ["USA", "CUB", "TCA"],
   "BIH": [
     "HRV",
     "MNE",
     "SRB"
   ],
-  "BLM": [],
-  "SHN": [],
+  "BLM": ["MAF", "GLP"],
+  "SHN": ["AGO", "BRA"],
   "BLR": [
     "LVA",
     "LTU",
@@ -125,7 +125,7 @@
     "GTM",
     "MEX"
   ],
-  "BMU": [],
+  "BMU": ["USA"],
   "BOL": [
     "ARG",
     "BRA",
@@ -133,7 +133,7 @@
     "PRY",
     "PER"
   ],
-  "BES": [],
+  "BES": ["VEN", "CUW"],
   "BRA": [
     "ARG",
     "BOL",
@@ -146,7 +146,7 @@
     "URY",
     "VEN"
   ],
-  "BRB": [],
+  "BRB": ["VCT", "LCA"],
   "BRN": [
     "MYS"
   ],
@@ -154,7 +154,7 @@
     "CHN",
     "IND"
   ],
-  "BVT": [],
+  "BVT": ["ZAF"],
   "BWA": [
     "NAM",
     "ZAF",
@@ -173,7 +173,7 @@
     "USA",
     "GRL"
   ],
-  "CCK": [],
+  "CCK": ["CXR", "AUS"],
   "CHE": [
     "AUT",
     "FRA",
@@ -237,7 +237,7 @@
     "COD",
     "GAB"
   ],
-  "COK": [],
+  "COK": ["PYF", "NZL"],
   "COL": [
     "BRA",
     "ECU",
@@ -245,17 +245,17 @@
     "PER",
     "VEN"
   ],
-  "COM": [],
-  "CPV": [],
+  "COM": ["MDG", "MOZ", "MYT"],
+  "CPV": ["SEN", "MRT"],
   "CRI": [
     "NIC",
     "PAN"
   ],
-  "CUB": [],
-  "CUW": [],
-  "CXR": [],
-  "CYM": [],
-  "CYP": [],
+  "CUB": ["USA", "MEX", "HTI", "JAM"],
+  "CUW": ["ABW", "VEN", "BES"],
+  "CXR": ["IDN", "AUS"],
+  "CYM": ["CUB", "JAM"],
+  "CYP": ["TUR", "GRC", "LBN"],
   "CZE": [
     "AUT",
     "DEU",
@@ -278,7 +278,7 @@
     "ETH",
     "SOM"
   ],
-  "DMA": [],
+  "DMA": ["GLP", "MTQ"],
   "DNK": [
     "DEU"
   ],
@@ -338,8 +338,8 @@
     "SWE",
     "RUS"
   ],
-  "FJI": [],
-  "FLK": [],
+  "FJI": ["VUT", "TON", "WLF"],
+  "FLK": ["ARG"],
   "FRA": [
     "AND",
     "BEL",
@@ -350,8 +350,8 @@
     "ESP",
     "CHE"
   ],
-  "FRO": [],
-  "FSM": [],
+  "FRO": ["GBR", "ISL", "NOR"],
+  "FSM": ["PNG", "GUM", "PLW", "MHL"],
   "GAB": [
     "CMR",
     "COG",
@@ -359,7 +359,8 @@
   ],
   "GBR": [
     "IRL",
-    "ISL"
+    "ISL",
+    "FRA"
   ],
   "GEO": [
     "ARM",
@@ -367,7 +368,7 @@
     "RUS",
     "TUR"
   ],
-  "GGY": [],
+  "GGY": ["JEY", "FRA"],
   "GHA": [
     "BFA",
     "CIV",
@@ -384,7 +385,7 @@
     "SEN",
     "SLE"
   ],
-  "GLP": [],
+  "GLP": ["DMA", "ATG", "BLM"],
   "GMB": [
     "SEN"
   ],
@@ -402,7 +403,7 @@
     "TUR",
     "MKD"
   ],
-  "GRD": [],
+  "GRD": ["VCT", "TTO"],
   "GRL": [
     "CAN",
     "ISL"
@@ -417,7 +418,7 @@
     "BRA",
     "SUR"
   ],
-  "GUM": [],
+  "GUM": ["MNP", "FSM"],
   "GUY": [
     "BRA",
     "SUR",
@@ -426,7 +427,7 @@
   "HKG": [
     "CHN"
   ],
-  "HMD": [],
+  "HMD": ["ATA", "AUS"],
   "HND": [
     "GTM",
     "SLV",
@@ -458,7 +459,7 @@
     "AUS",
     "SGP"
   ],
-  "IMN": [],
+  "IMN": ["GBR", "IRL"],
   "IND": [
     "BGD",
     "BTN",
@@ -467,7 +468,7 @@
     "NPL",
     "PAK"
   ],
-  "IOT": [],
+  "IOT": ["MDV", "MUS"],
   "IRL": [
     "GBR"
   ],
@@ -507,8 +508,8 @@
     "CHE",
     "VAT"
   ],
-  "JAM": [],
-  "JEY": [],
+  "JAM": ["CUB", "HTI", "CYM"],
+  "JEY": ["GGY", "FRA"],
   "JOR": [
     "IRQ",
     "ISR",
@@ -545,8 +546,8 @@
     "THA",
     "VNM"
   ],
-  "KIR": [],
-  "KNA": [],
+  "KIR": ["NRU", "TUV", "UMI"],
+  "KNA": ["ATG", "MAF"],
   "KOR": [
     "PRK",
     "JPN"
@@ -585,7 +586,7 @@
     "SDN",
     "TUN"
   ],
-  "LCA": [],
+  "LCA": ["MTQ", "VCT", "BRB"],
   "LIE": [
     "AUT",
     "CHE"
@@ -634,13 +635,13 @@
   "MDG": [
     "MOZ"
   ],
-  "MDV": [],
+  "MDV": ["IND", "LKA", "IOT"],
   "MEX": [
     "BLZ",
     "GTM",
     "USA"
   ],
-  "MHL": [],
+  "MHL": ["FSM", "KIR"],
   "MKD": [
     "ALB",
     "BGR",
@@ -657,7 +658,7 @@
     "NER",
     "SEN"
   ],
-  "MLT": [],
+  "MLT": ["ITA", "LBY"],
   "MMR": [
     "BGD",
     "CHN",
@@ -676,7 +677,7 @@
     "CHN",
     "RUS"
   ],
-  "MNP": [],
+  "MNP": ["GUM"],
   "MOZ": [
     "MWI",
     "ZAF",
@@ -692,9 +693,9 @@
     "SEN",
     "ESH"
   ],
-  "MSR": [],
-  "MTQ": [],
-  "MUS": [],
+  "MSR": ["ATG", "GLP"],
+  "MTQ": ["LCA", "DMA"],
+  "MUS": ["REU", "IOT"],
   "MWI": [
     "MOZ",
     "TZA",
@@ -706,14 +707,14 @@
     "THA",
     "PHL"
   ],
-  "MYT": [],
+  "MYT": ["COM", "MDG"],
   "NAM": [
     "AGO",
     "BWA",
     "ZAF",
     "ZMB"
   ],
-  "NCL": [],
+  "NCL": ["VUT", "AUS"],
   "NER": [
     "DZA",
     "BEN",
@@ -723,7 +724,7 @@
     "MLI",
     "NGA"
   ],
-  "NFK": [],
+  "NFK": ["AUS", "NZL"],
   "NGA": [
     "BEN",
     "CMR",
@@ -734,7 +735,7 @@
     "CRI",
     "HND"
   ],
-  "NIU": [],
+  "NIU": ["TON", "COK"],
   "NLD": [
     "BEL",
     "DEU"
@@ -748,7 +749,7 @@
     "CHN",
     "IND"
   ],
-  "NRU": [],
+  "NRU": ["KIR", "FSM"],
   "NZL": [
     "AUS"
   ],
@@ -767,7 +768,7 @@
     "COL",
     "CRI"
   ],
-  "PCN": [],
+  "PCN": ["PYF"],
   "PER": [
     "BOL",
     "BRA",
@@ -778,7 +779,7 @@
   "PHL": [
     "MYS"
   ],
-  "PLW": [],
+  "PLW": ["PHL", "FSM", "IDN"],
   "PNG": [
     "IDN",
     "AUS"
@@ -792,7 +793,7 @@
     "SVK",
     "UKR"
   ],
-  "PRI": [],
+  "PRI": ["DOM", "VIR", "VGB"],
   "PRK": [
     "CHN",
     "KOR",
@@ -811,11 +812,11 @@
     "EGY",
     "JOR"
   ],
-  "PYF": [],
+  "PYF": ["COK", "PCN"],
   "QAT": [
     "SAU"
   ],
-  "REU": [],
+  "REU": ["MUS", "MDG", "ATF"],
   "ROU": [
     "BGR",
     "HUN",
@@ -875,9 +876,9 @@
   "SGP": [
     "IDN"
   ],
-  "SGS": [],
-  "SJM": [],
-  "SLB": [],
+  "SGS": ["FLK", "ATA"],
+  "SJM": ["NOR", "GRL"],
+  "SLB": ["PNG", "VUT"],
   "SLE": [
     "GIN",
     "LBR"
@@ -894,7 +895,7 @@
     "ETH",
     "KEN"
   ],
-  "SPM": [],
+  "SPM": ["CAN"],
   "SRB": [
     "BIH",
     "BGR",
@@ -913,7 +914,7 @@
     "SDN",
     "UGA"
   ],
-  "STP": [],
+  "STP": ["GAB", "GNQ"],
   "SUR": [
     "BRA",
     "GUF",
@@ -943,7 +944,7 @@
   "SXM": [
     "MAF"
   ],
-  "SYC": [],
+  "SYC": ["MDG", "MUS"],
   "SYR": [
     "IRQ",
     "ISR",
@@ -951,7 +952,7 @@
     "LBN",
     "TUR"
   ],
-  "TCA": [],
+  "TCA": ["BHS", "HTI"],
   "TCD": [
     "CMR",
     "CAF",
@@ -977,7 +978,7 @@
     "KGZ",
     "UZB"
   ],
-  "TKL": [],
+  "TKL": ["WSM", "COK"],
   "TKM": [
     "AFG",
     "IRN",
@@ -987,8 +988,8 @@
   "TLS": [
     "IDN"
   ],
-  "TON": [],
-  "TTO": [],
+  "TON": ["FJI", "NIU", "WSM"],
+  "TTO": ["VEN", "GRD"],
   "TUN": [
     "DZA",
     "LBY"
@@ -1003,8 +1004,8 @@
     "IRQ",
     "SYR"
   ],
-  "TUV": [],
-  "TWN": [],
+  "TUV": ["KIR", "FJI"],
+  "TWN": ["CHN", "PHL", "JPN"],
   "TZA": [
     "BDI",
     "COD",
@@ -1031,7 +1032,7 @@
     "RUS",
     "SVK"
   ],
-  "UMI": [],
+  "UMI": ["KIR", "MHL"],
   "URY": [
     "ARG",
     "BRA"
@@ -1051,22 +1052,22 @@
   "VAT": [
     "ITA"
   ],
-  "VCT": [],
+  "VCT": ["LCA", "GRD", "BRB"],
   "VEN": [
     "BRA",
     "COL",
     "GUY"
   ],
-  "VGB": [],
-  "VIR": [],
+  "VGB": ["VIR", "PRI"],
+  "VIR": ["PRI", "VGB"],
   "VNM": [
     "KHM",
     "CHN",
     "LAO"
   ],
-  "VUT": [],
-  "WLF": [],
-  "WSM": [],
+  "VUT": ["SLB", "FJI", "NCL"],
+  "WLF": ["FJI", "WSM", "TON"],
+  "WSM": ["ASM", "TKL", "TON"],
   "YEM": [
     "OMN",
     "SAU"
