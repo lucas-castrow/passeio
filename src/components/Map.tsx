@@ -63,7 +63,8 @@ function splitMultiPolygonFeature(feature: FeatureCollection['features'][number]
   const splitFeatures: FeatureCollection['features'] = [];
   for (const subPolygon of feature.geometry.coordinates) {
     const mappedBBox = getPolygonBBox(subPolygon[0]);
-    const targetIso = getTerritoryIso(feature.properties.iso, mappedBBox);
+    const originalIso = feature.properties?.iso ?? '';
+    const targetIso = getTerritoryIso(originalIso, mappedBBox);
 
     splitFeatures.push({
       type: 'Feature',
@@ -135,8 +136,13 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
     const labelledIsos = new Set<string>();
 
     geoJsonRef.current.eachLayer((layer: L.Layer) => {
-      const geoJsonLayer = layer as unknown as L.GeoJSON;
-      const iso = geoJsonLayer.feature?.properties?.iso;
+      const geoJsonLayer = layer as unknown as { feature?: { properties?: { iso?: string } } };
+      const featureIso = geoJsonLayer.feature?.properties?.iso ?? '';
+      const pathLayer = layer as unknown as L.Path & {
+        getTooltip?: () => L.Tooltip | null;
+        bindTooltip?: (content: string, options?: L.TooltipOptions) => void;
+        unbindTooltip?: () => void;
+      };
 
       // Calculate style
       let fillOpacity = 1;
@@ -147,19 +153,19 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
       let isYellow = false;
       let isCurrent = false;
 
-      if (iso === originId) {
+      if (featureIso === originId) {
         fillOpacity = 0.6;
         color = '#3b82f6';
         borderColor = 'white';
         weight = 2;
-      } else if (iso === destId && destId && !guessedIds.includes(destId)) {
+      } else if (featureIso === destId && destId && !guessedIds.includes(destId)) {
         fillOpacity = 0.6;
         color = '#3b82f6';
         borderColor = 'white';
         weight = 2;
-      } else if (iso && guessedIds.includes(iso)) {
+      } else if (featureIso && guessedIds.includes(featureIso)) {
         fillOpacity = 0.6;
-        if (iso === currentFrontier) {
+        if (featureIso === currentFrontier) {
           color = '#22c55e';
           isCurrent = true;
         } else {
@@ -167,20 +173,20 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         }
         borderColor = 'white';
         weight = 2;
-      } else if (iso && errorIds.includes(iso)) {
-        isYellow = currentlyBordering.includes(iso);
+      } else if (featureIso && errorIds.includes(featureIso)) {
+        isYellow = currentlyBordering.includes(featureIso);
         fillOpacity = 0.6;
         color = isYellow ? '#eab308' : '#ef4444';
         borderColor = 'white';
         weight = 2;
-      } else if (iso && currentlyBordering.includes(iso) && !guessedIds.includes(iso) && !errorIds.includes(iso) && iso !== originId && iso !== destId) {
+      } else if (featureIso && currentlyBordering.includes(featureIso) && !guessedIds.includes(featureIso) && !errorIds.includes(featureIso) && featureIso !== originId && featureIso !== destId) {
         color = '#eab308';
         fillOpacity = 0.6;
         borderColor = 'white';
         weight = 2;
       }
 
-      layer.setStyle({
+      pathLayer.setStyle({
         fillColor: color,
         weight: weight,
         opacity: 1,
@@ -188,35 +194,35 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         fillOpacity: fillOpacity
       });
 
-      const isLabelCandidate = !!iso && (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso));
+      const isLabelCandidate = !!featureIso && (featureIso === originId || featureIso === destId || guessedIds.includes(featureIso) || errorIds.includes(featureIso));
 
-      if (layer.getTooltip()) {
-        layer.unbindTooltip();
+      if (pathLayer.getTooltip && pathLayer.getTooltip()) {
+        pathLayer.unbindTooltip?.();
       }
 
-      if (isLabelCandidate && !labelledIsos.has(iso)) {
-        labelledIsos.add(iso);
+      if (isLabelCandidate && !labelledIsos.has(featureIso)) {
+        labelledIsos.add(featureIso);
 
-        const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
+        const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(featureIso) ? 'text-red-800' : (featureIso === originId || featureIso === destId ? 'text-blue-800' : 'text-green-800'));
 
-        let labelText = getCountryName(iso, lang);
+        let labelText = getCountryName(featureIso, lang);
 
-        if (iso === originId) {
-          labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
-        } else if (iso === destId) {
-          labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
-        } else if (iso && guessedIds.includes(iso)) {
-          const isCurrentStep = iso === currentFrontier;
-          const index = guessedIds.lastIndexOf(iso) + 1;
-          let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
+        if (featureIso === originId) {
+          labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(featureIso, lang)}</span></div>`;
+        } else if (featureIso === destId) {
+          labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(featureIso, lang)}</span></div>`;
+        } else if (featureIso && guessedIds.includes(featureIso)) {
+          const isCurrentStep = featureIso === currentFrontier;
+          const index = guessedIds.lastIndexOf(featureIso) + 1;
+          let extra = (featureIso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
           if (isCurrentStep) {
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso, lang)}</span></div>`;
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="bg-green-700 text-white rounded-full w-5 h-5 flex items-center justify-center font-black mt-1 p-3 text-[12px] shadow-sm">${index}</div>${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(featureIso, lang)}</span></div>`;
           } else {
-            labelText = `<div class="flex flex-col items-center justify-center -mt-2">${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(iso, lang)}</span></div>`;
+            labelText = `<div class="flex flex-col items-center justify-center -mt-2">${extra}<span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[13px] bg-white/60 px-1 rounded truncate leading-tight">${getCountryName(featureIso, lang)}</span></div>`;
           }
         }
 
-        layer.bindTooltip(labelText, {
+        pathLayer.bindTooltip?.(labelText, {
           permanent: true,
           direction: 'center',
           className: `country-label font-bold text-[13px] bg-transparent border-none shadow-none ${textColorClass}`
@@ -281,11 +287,16 @@ export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: 
     setTimeout(() => {
       if (!geoJsonRef.current) return;
       const layers = geoJsonRef.current.getLayers();
-      const targetLayer = layers.find((l: L.Layer) => (l as unknown as L.GeoJSON).feature?.properties?.iso === focusIso);
+      const targetLayer = layers.find((l: L.Layer) => {
+        const layerWithIso = l as unknown as { feature?: { properties?: { iso?: string } } };
+        return layerWithIso.feature?.properties?.iso === focusIso;
+      });
 
-      if (targetLayer && targetLayer.feature) {
+      if (targetLayer) {
+        const targetFeatureLayer = targetLayer as unknown as { feature?: any };
+        if (!targetFeatureLayer.feature) return;
         // Use turf.bbox as requested
-        const bbox = turf.bbox(targetLayer.feature);
+        const bbox = turf.bbox(targetFeatureLayer.feature);
         // bbox format is [minLng, minLat, maxLng, maxLat]
         const bounds = L.latLngBounds(
           [bbox[1], bbox[0]], // SouthWest: [minLat, minLng]
