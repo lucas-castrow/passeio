@@ -43,12 +43,12 @@ export default function InputAutocomplete({ onGuess, disabled, ignoredIsos = [],
     if (val.trim().length > 0) {
       const normalizedQuery = normalizeStr(val);
 
-      const exactMatches = searchIndex.list.filter(c =>
-        c.normalizedName.includes(normalizedQuery)
+      const exactNameMatches = searchIndex.list.filter(c =>
+        c.normalizedName === normalizedQuery
       ).map(c => ({ label: c.name, iso: c.id }));
 
-      const aliasMatches = searchIndex.aliasList.filter(a =>
-        a.normalizedAlias.includes(normalizedQuery)
+      const exactAliasMatches = searchIndex.aliasList.filter(a =>
+        a.normalizedAlias === normalizedQuery
       ).map(a => {
         const country = searchIndex.list.find(c => c.id === a.iso);
         return {
@@ -57,8 +57,43 @@ export default function InputAutocomplete({ onGuess, disabled, ignoredIsos = [],
         };
       });
 
-      // Combine and filter out duplicate ISOs
-      const combined = [...exactMatches, ...aliasMatches];
+      const prefixNameMatches = searchIndex.list.filter(c =>
+        c.normalizedName.startsWith(normalizedQuery) && c.normalizedName !== normalizedQuery
+      ).map(c => ({ label: c.name, iso: c.id }));
+
+      const prefixAliasMatches = searchIndex.aliasList.filter(a =>
+        a.normalizedAlias.startsWith(normalizedQuery) && a.normalizedAlias !== normalizedQuery
+      ).map(a => {
+        const country = searchIndex.list.find(c => c.id === a.iso);
+        return {
+          label: `${country?.name || a.iso} (${a.alias})`,
+          iso: a.iso
+        };
+      });
+
+      const substringNameMatches = searchIndex.list.filter(c =>
+        c.normalizedName.includes(normalizedQuery) && !c.normalizedName.startsWith(normalizedQuery)
+      ).map(c => ({ label: c.name, iso: c.id }));
+
+      const substringAliasMatches = searchIndex.aliasList.filter(a =>
+        a.normalizedAlias.includes(normalizedQuery) && !a.normalizedAlias.startsWith(normalizedQuery)
+      ).map(a => {
+        const country = searchIndex.list.find(c => c.id === a.iso);
+        return {
+          label: `${country?.name || a.iso} (${a.alias})`,
+          iso: a.iso
+        };
+      });
+
+      const combined = [
+        ...exactNameMatches,
+        ...exactAliasMatches,
+        ...prefixNameMatches,
+        ...prefixAliasMatches,
+        ...substringNameMatches,
+        ...substringAliasMatches
+      ];
+
       const unique = Array.from(new Map(combined.map(item => [item.iso, item])).values());
 
       setSuggestions(unique);

@@ -34,6 +34,10 @@ export default function Home() {
   const [currentDateString, setCurrentDateString] = useState('');
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [focusErrorIso, setFocusErrorIso] = useState<string | null>(null);
+  const [mapRefreshTrigger, setMapRefreshTrigger] = useState<number>(0);
+
+  const currentPath = pathHistory;
+  const currentFrontier = currentPath.length > 0 ? currentPath[currentPath.length - 1] : (origin?.id || null);
 
   useEffect(() => {
     async function initialize() {
@@ -82,6 +86,18 @@ export default function Home() {
 
     initialize();
   }, []);
+
+  useEffect(() => {
+    if (!showIntro && !showSuccessModal) {
+      // força recalculação de estilos no mapa (reaplicando cores após fechamento de modal)
+      setMapRefreshTrigger((prev) => prev + 1);
+
+      // recenter opcional no país ativo para garantir foco visual
+      if (currentFrontier) {
+        setFocusErrorIso(currentFrontier);
+      }
+    }
+  }, [showSuccessModal, showIntro, currentFrontier]);
 
   const handleGuess = async (isoCode: string) => {
     if (!origin || !destination) return;
@@ -205,8 +221,6 @@ export default function Home() {
     return c ? c.name : iso;
   };
 
-  const currentPath = pathHistory;
-  const currentFrontier = currentPath.length > 0 ? currentPath[currentPath.length - 1] : (origin?.id || null);
   const currentlyBordering = currentFrontier ? (countryGraph[currentFrontier] || []) : [];
 
   if (loading) {
@@ -248,6 +262,7 @@ export default function Home() {
             errorIds={errorIds}
             focusErrorIso={focusErrorIso}
             setFocusErrorIso={setFocusErrorIso}
+            refreshTrigger={mapRefreshTrigger}
           />
         </div>
 

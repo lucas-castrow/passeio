@@ -15,9 +15,82 @@ interface MapProps {
   errorIds?: string[];
   focusErrorIso?: string | null;
   setFocusErrorIso?: (iso: string | null) => void;
+  refreshTrigger?: number;
 }
 
-export default function InteractiveMap({ originId, destId, guessedIds, errorIds = [], focusErrorIso = null, setFocusErrorIso }: MapProps) {
+interface BBox { minx: number; miny: number; maxx: number; maxy: number; }
+
+function getPolygonBBox(polygon: number[][]): BBox {
+  let minx = Number.POSITIVE_INFINITY;
+  let miny = Number.POSITIVE_INFINITY;
+  let maxx = Number.NEGATIVE_INFINITY;
+  let maxy = Number.NEGATIVE_INFINITY;
+  for (const [x, y] of polygon) {
+    if (x < minx) minx = x;
+    if (y < miny) miny = y;
+    if (x > maxx) maxx = x;
+    if (y > maxy) maxy = y;
+  }
+  return { minx, miny, maxx, maxy };
+}
+
+function getTerritoryIso(originalIso: string, bbox: BBox): string {
+  // French overseas splits
+  if (originalIso === 'FRA') {
+    if (bbox.minx >= -56 && bbox.maxx <= -50 && bbox.miny >= 1 && bbox.maxy <= 7) return 'GUF';
+    if (bbox.minx >= 54 && bbox.maxx <= 56 && bbox.miny >= -22 && bbox.maxy <= -20) return 'REU';
+    if (bbox.minx >= 44 && bbox.maxx <= 46 && bbox.miny >= -13.5 && bbox.maxy <= -12.4) return 'MYT';
+    if (bbox.minx >= -63.5 && bbox.maxx <= -62.5 && bbox.miny >= 17.8 && bbox.maxy <= 18.3) return 'MAF';
+    if (bbox.minx >= -63.2 && bbox.maxx <= -62.8 && bbox.miny >= 17.4 && bbox.maxy <= 18.1) return 'SXM';
+    if (bbox.minx >= -62.5 && bbox.maxx <= -60 && bbox.miny >= 14 && bbox.maxy <= 15.5) return 'MTQ';
+    if (bbox.minx >= -62.5 && bbox.maxx <= -60 && bbox.miny >= 15.5 && bbox.maxy <= 17.5) return 'GLP';
+  }
+
+  // Dutch overseas splits
+  if (originalIso === 'NLD') {
+    if (bbox.minx >= -69.2 && bbox.maxx <= -67.7 && bbox.miny >= 11.6 && bbox.maxy <= 13.4) return 'BES';
+    if (bbox.minx >= -63.5 && bbox.maxx <= -62.5 && bbox.miny >= 17.4 && bbox.maxy <= 18.5) return 'SXM';
+  }
+
+  return originalIso;
+}
+
+function splitMultiPolygonFeature(feature: FeatureCollection['features'][number]): FeatureCollection['features'] {
+  if (feature.geometry.type !== 'MultiPolygon') {
+    return [feature];
+  }
+
+  const splitFeatures: FeatureCollection['features'] = [];
+  for (const subPolygon of feature.geometry.coordinates) {
+    const mappedBBox = getPolygonBBox(subPolygon[0]);
+    const targetIso = getTerritoryIso(feature.properties.iso, mappedBBox);
+
+    splitFeatures.push({
+      type: 'Feature',
+      properties: { iso: targetIso },
+      geometry: { type: 'Polygon', coordinates: subPolygon }
+    });
+  }
+
+  return splitFeatures;
+}
+
+function splitTerritoryFeatures(geoData: FeatureCollection): FeatureCollection {
+  if (!geoData || !Array.isArray(geoData.features)) return geoData;
+
+  const newFeatures: FeatureCollection['features'] = [];
+  for (const feature of geoData.features) {
+    if (feature.geometry?.type === 'MultiPolygon') {
+      newFeatures.push(...splitMultiPolygonFeature(feature));
+    } else {
+      newFeatures.push(feature);
+    }
+  }
+
+  return { ...geoData, features: newFeatures };
+}
+
+export default function InteractiveMap({ originId, destId, guessedIds, errorIds = [], focusErrorIso = null, setFocusErrorIso, refreshTrigger = 0 }: MapProps) {
   const params = useParams();
   const lang = (params?.lang as string) || 'pt';
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
@@ -35,12 +108,12 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
     if (mapRef.current) {
       mapRef.current.invalidateSize();
     }
-  }, [geoData]);
+  }, [geoData, refreshTrigger]);
 
   useEffect(() => {
     fetch('/countries.geojson?v=3')
       .then(res => res.json())
-      .then(data => setGeoData(data))
+      .then(data => setGeoData(splitTerritoryFeatures(data)))
       .catch(err => console.error("Error loading geojson", err));
   }, []);
 
@@ -59,8 +132,11 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
   useEffect(() => {
     if (!geoJsonRef.current) return;
 
-    geoJsonRef.current.eachLayer((layer: any) => {
-      const iso = layer.feature.properties.iso;
+    const labelledIsos = new Set<string>();
+
+    geoJsonRef.current.eachLayer((layer: L.Layer) => {
+      const geoJsonLayer = layer as unknown as L.GeoJSON;
+      const iso = geoJsonLayer.feature?.properties?.iso;
 
       // Calculate style
       let fillOpacity = 1;
@@ -81,7 +157,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         color = '#3b82f6';
         borderColor = 'white';
         weight = 2;
-      } else if (guessedIds.includes(iso)) {
+      } else if (iso && guessedIds.includes(iso)) {
         fillOpacity = 0.6;
         if (iso === currentFrontier) {
           color = '#22c55e';
@@ -91,17 +167,14 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         }
         borderColor = 'white';
         weight = 2;
-      } else if (errorIds.includes(iso)) {
+      } else if (iso && errorIds.includes(iso)) {
         isYellow = currentlyBordering.includes(iso);
         fillOpacity = 0.6;
         color = isYellow ? '#eab308' : '#ef4444';
         borderColor = 'white';
         weight = 2;
-      }
-
-      // If it's a neighboring country (but not origin/dest/guessed/error), mark with the same yellow hint color
-      else if (currentlyBordering.includes(iso) && !guessedIds.includes(iso) && !errorIds.includes(iso) && iso !== originId && iso !== destId) {
-        color = '#eab308'; // same yellow as the "border hint"
+      } else if (iso && currentlyBordering.includes(iso) && !guessedIds.includes(iso) && !errorIds.includes(iso) && iso !== originId && iso !== destId) {
+        color = '#eab308';
         fillOpacity = 0.6;
         borderColor = 'white';
         weight = 2;
@@ -115,13 +188,15 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
         fillOpacity: fillOpacity
       });
 
-      // Handle label/tooltips removal first
+      const isLabelCandidate = !!iso && (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso));
+
       if (layer.getTooltip()) {
         layer.unbindTooltip();
       }
 
-      // Re-bind tooltips dynamically
-      if (iso === originId || iso === destId || guessedIds.includes(iso) || errorIds.includes(iso)) {
+      if (isLabelCandidate && !labelledIsos.has(iso)) {
+        labelledIsos.add(iso);
+
         const textColorClass = isYellow ? 'text-yellow-800' : (errorIds.includes(iso) ? 'text-red-800' : (iso === originId || iso === destId ? 'text-blue-800' : 'text-green-800'));
 
         let labelText = getCountryName(iso, lang);
@@ -130,7 +205,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
           labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Orig' : 'Origem'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
         } else if (iso === destId) {
           labelText = `<div class="flex flex-col items-center justify-center -mt-2"><div class="text-[10px] uppercase tracking-wider text-blue-900 bg-white/70 px-1 rounded mb-0.5 shadow-sm font-black">${lang === 'en' ? 'Dest' : 'Destino'}</div><span class="mt-0.5 whitespace-nowrap drop-shadow-md text-[14px] bg-white/60 px-1.5 rounded truncate leading-tight text-blue-800">${getCountryName(iso, lang)}</span></div>`;
-        } else if (guessedIds.includes(iso)) {
+        } else if (iso && guessedIds.includes(iso)) {
           const isCurrentStep = iso === currentFrontier;
           const index = guessedIds.lastIndexOf(iso) + 1;
           let extra = (iso === destId) ? `<div class="text-[10px] uppercase tracking-wider text-green-900 bg-white/70 px-1 rounded mb-0.5 mt-1">${lang === 'en' ? 'Dest' : 'Destino'}</div>` : '';
@@ -143,12 +218,12 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
 
         layer.bindTooltip(labelText, {
           permanent: true,
-          direction: "center",
+          direction: 'center',
           className: `country-label font-bold text-[13px] bg-transparent border-none shadow-none ${textColorClass}`
         });
       }
     });
-  }, [geoData, originId, destId, guessedIds, errorIds, currentlyBordering, focusErrorIso]);
+  }, [geoData, originId, destId, guessedIds, errorIds, currentlyBordering, focusErrorIso, refreshTrigger]);
 
   return (
     <div className="absolute inset-0 w-full h-full z-0 bg-[#e2e8f0]">
@@ -196,7 +271,7 @@ export default function InteractiveMap({ originId, destId, guessedIds, errorIds 
   );
 }
 
-export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: { geoJsonRef: React.RefObject<any>, focusIso: string | null, setFocusErrorIso?: (iso: string | null) => void }) {
+export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: { geoJsonRef: React.RefObject<L.GeoJSON | null>, focusIso: string | null, setFocusErrorIso?: (iso: string | null) => void }) {
   const map = useMap();
 
   useEffect(() => {
@@ -206,7 +281,7 @@ export function MapCenterController({ geoJsonRef, focusIso, setFocusErrorIso }: 
     setTimeout(() => {
       if (!geoJsonRef.current) return;
       const layers = geoJsonRef.current.getLayers();
-      const targetLayer = layers.find((l: any) => l.feature?.properties?.iso === focusIso);
+      const targetLayer = layers.find((l: L.Layer) => (l as unknown as L.GeoJSON).feature?.properties?.iso === focusIso);
 
       if (targetLayer && targetLayer.feature) {
         // Use turf.bbox as requested
