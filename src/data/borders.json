@@ -29,7 +29,7 @@
     "MNE",
     "GRC",
     "MKD",
-    "UNK"
+    "XKX"
   ],
   "AND": [
     "FRA",
@@ -55,10 +55,6 @@
   "ASM": [
     "WSM",
     "TON"
-  ],
-  "ATA": [
-    "ARG",
-    "CHL"
   ],
   "ATF": [
     "REU",
@@ -535,7 +531,6 @@
     "CHN"
   ],
   "HMD": [
-    "ATA",
     "AUS"
   ],
   "HND": [
@@ -682,7 +677,7 @@
     "PRK",
     "JPN"
   ],
-  "UNK": [
+  "XKX": [
     "ALB",
     "MKD",
     "MNE",
@@ -734,8 +729,7 @@
   "LTU": [
     "BLR",
     "LVA",
-    "POL",
-    "RUS"
+    "POL"
   ],
   "LUX": [
     "BEL",
@@ -787,7 +781,7 @@
     "ALB",
     "BGR",
     "GRC",
-    "UNK",
+    "XKX",
     "SRB"
   ],
   "MLI": [
@@ -814,7 +808,7 @@
     "ALB",
     "BIH",
     "HRV",
-    "UNK",
+    "XKX",
     "SRB"
   ],
   "MNG": [
@@ -965,7 +959,6 @@
     "CZE",
     "DEU",
     "LTU",
-    "RUS",
     "SVK",
     "UKR"
   ],
@@ -1021,10 +1014,8 @@
     "KAZ",
     "PRK",
     "LVA",
-    "LTU",
     "MNG",
     "NOR",
-    "POL",
     "UKR",
     "USA",
     "JPN"
@@ -1064,8 +1055,7 @@
     "IDN"
   ],
   "SGS": [
-    "FLK",
-    "ATA"
+    "FLK"
   ],
   "SJM": [
     "NOR",
@@ -1099,7 +1089,7 @@
     "BGR",
     "HRV",
     "HUN",
-    "UNK",
+    "XKX",
     "MKD",
     "MNE",
     "ROU"

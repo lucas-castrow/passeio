@@ -16,7 +16,14 @@ export const borderSanitizationRules: BorderSanitizationRule[] = [
     { source: 'ESP', excludedNeighbors: ['MAR'], bidirectional: false },
     { source: 'GBR', excludedNeighbors: ['ESP', 'CYP'], bidirectional: true },
     { source: 'NLD', excludedNeighbors: ['FRA', 'MAF', 'SXM'], bidirectional: true },
-    { source: 'RUS', excludedNeighbors: ['POL', 'LTU'], bidirectional: true }
+    { source: 'RUS', excludedNeighbors: ['POL', 'LTU'], bidirectional: true },
+    { source: 'SHN', excludedNeighbors: ['BRA', 'AGO'], bidirectional: true },
+    // Isola a Antártida (remove atalho pelo Polo Sul entre Argentina e Chile)
+    { source: 'ATA', excludedNeighbors: ['ARG', 'CHL', 'HMD', 'SGS'], bidirectional: true },
+    // Isola as Ilhas Malvinas/Falklands (remove fronteira política com a Argentina)
+    { source: 'FLK', excludedNeighbors: ['ARG', 'SGS'], bidirectional: true },
+    // Isola a Geórgia do Sul (que estava ligando Antártida e Malvinas)
+    { source: 'SGS', excludedNeighbors: ['FLK', 'ATA'], bidirectional: true }
 ];
 
 function cloneGraph(graph: BorderGraph): BorderGraph {
