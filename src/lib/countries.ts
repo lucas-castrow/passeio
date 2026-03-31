@@ -54,8 +54,21 @@ export function sanitizeBorderGraph(rawGraph: BorderGraph,
 
     return sanitized;
 }
+export function makeGraphBidirectional(graph: BorderGraph): BorderGraph {
+    const bidiGraph = cloneGraph(graph);
 
-export const countryGraph: BorderGraph = sanitizeBorderGraph(bordersData);
+    for (const [country, neighbors] of Object.entries(bidiGraph)) {
+        for (const neighbor of neighbors) {
+            if (bidiGraph[neighbor] && !bidiGraph[neighbor].includes(country)) {
+                bidiGraph[neighbor].push(country);
+            }
+        }
+    }
+    return bidiGraph;
+}
+
+export const countryGraph: BorderGraph = makeGraphBidirectional(sanitizeBorderGraph(bordersData));
+// export const countryGraph: BorderGraph = sanitizeBorderGraph(bordersData);
 export const countryNamesPtBr: Record<string, string> = ptNamesData;
 export const countryNamesEn: Record<string, string> = enNamesData;
 export const countryAliases: Record<string, string> = aliasesData;

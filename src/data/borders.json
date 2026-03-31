@@ -67,7 +67,8 @@
   "AUS": [
     "IDN",
     "NZL",
-    "PNG"
+    "PNG",
+    "NCL"
   ],
   "AUT": [
     "CZE",
@@ -952,7 +953,8 @@
   ],
   "PNG": [
     "IDN",
-    "AUS"
+    "AUS",
+    "SLB"
   ],
   "POL": [
     "BLR",
